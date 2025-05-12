@@ -1,0 +1,29 @@
+# Ambiente Virtual Python
+venv/
+.venv/
+
+# Arquivos de Cache e Bytecode Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Arquivos de configuração com dados sensíveis
+config.py
+
+# Arquivos específicos do editor/IDE (Exemplo VSCode)
+.vscode/
+
+# Arquivos de dependências (gerados por alguns gerenciadores)
+*.egg-info/
+dist/
+build/
+
+# Arquivos de Sistema Operacional
+.DS_Store
+Thumbs.db
+
+# Logs e arquivos temporários (adicione outros se precisar)
+*.log
+tmp/
+temp/
