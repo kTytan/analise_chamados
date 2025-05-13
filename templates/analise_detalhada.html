@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Análise Detalhada de Chamados</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> {# Exemplo se você criar um style.css #}
+    <style>
+        body { font-family: sans-serif; margin: 20px; background-color: #f9f9f9; }
+        h1, h2 { color: #333; text-align: center; }
+        .container { max-width: 1300px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        
+        nav { background-color: #333; padding: 10px 0; margin-bottom: 20px; text-align: center; }
+        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1.1em; }
+        nav a:hover { text-decoration: underline; }
+
+        .info { background-color: #f0f8ff; border-left: 5px solid #007bff; padding: 10px; border-radius: 5px; margin-bottom:20px;}
+        .filters { background-color: #f1f1f1; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
+        .filter-group { display: flex; flex-direction: column; }
+        .filters label { margin-bottom: 5px; font-weight: bold; }
+        .filters input[type="date"], .filters select, .filters button { 
+            padding: 10px; 
+            border-radius: 4px; 
+            border: 1px solid #ccc; 
+            font-size: 1em;
+        }
+        .filters button { background-color: #28a745; color: white; cursor: pointer; border: none; }
+        .filters button:hover { background-color: #218838; }
+        
+        .charts-row { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px; margin-bottom: 20px; }
+        .chart-container { flex: 1 1 400px; min-width: 350px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #e9ecef; }
+        .pagination { margin-top: 20px; margin-bottom: 20px; text-align: center; }
+        .pagination .pagination-item { margin: 0 2px; padding: 8px 12px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px; display: inline-block; }
+        .pagination .ellipsis { border: none; color: #333; padding: 8px 6px; }
+        .pagination .current-page { background-color: #007bff; color: white; border-color: #007bff; }
+        .pagination .disabled { color: #ccc; pointer-events: none; border-color: #eee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav>
+            <a href="{{ url_for('index') }}">Dashboard Principal</a>
+            <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
+        </nav>
+
+        <h1>Análise Detalhada de Chamados</h1>
+
+        <div class="filters">
+            <form method="GET" action="{{ url_for('analise_detalhada') }}" style="width:100%; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+                <div class="filter-group">
+                    <label for="data_inicio">Data Início:</label>
+                    <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
+                </div>
+                <div class="filter-group">
+                    <label for="data_fim">Data Fim:</label>
+                    <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
+                </div>
+
+                <div class="filter-group">
+                    <label for="servico">Serviço:</label>
+                    <select id="servico" name="servico">
+                        <option value="">Todos</option> {# Opção para não filtrar #}
+                        {% for s in servicos %}
+                            <option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>
+                                {{ s.ds_servico }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="tipo_chamado">Tipo de Chamado:</label>
+                    <select id="tipo_chamado" name="tipo_chamado">
+                        <option value="">Todos</option> {# Opção para não filtrar #}
+                        {% for tc in tipos_chamado %}
+                            <option value="{{ tc.ds_tipo_chamado }}" {% if tc.ds_tipo_chamado == tipo_chamado_selecionado %}selected{% endif %}>
+                                {{ tc.ds_tipo_chamado }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <button type="submit">Filtrar</button>
+                </div>
+            </form>
+        </div>
+
+        {# Incluir controles de paginação NO TOPO #}
+        {% include '_pagination_controls.html' %}
+
+        <div class="info">
+            <p>Período: <strong>{{ data_inicio }}</strong> a <strong>{{ data_fim }}</strong>.</p>
+            {% if servico_selecionado %}<p>Serviço: <strong>{{ servico_selecionado }}</strong>.</p>{% endif %}
+            {% if tipo_chamado_selecionado %}<p>Tipo: <strong>{{ tipo_chamado_selecionado }}</strong>.</p>{% endif %}
+            <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. 
+               Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
+        </div>
+
+        {# Aqui você pode adicionar novos gráficos específicos para esta página #}
+        {# Exemplo:
+        <div class="charts-row">
+            {% if algum_grafico_html %}
+                <div class="chart-container">
+                    {{ algum_grafico_html|safe }}
+                </div>
+            {% endif %}
+        </div>
+        #}
+
+
+        {% if total_chamados > 0 %}
+            <h2>Chamados Filtrados ({{ items_per_page }} por página):</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>CHAMADO</th>
+                        <th>TITULO</th>
+                        <th>SOLICITANTE</th>
+                        <th>SERVICO</th> {# Adicionado para conferência #}
+                        <th>TIPOCHAMADO</th> {# Adicionado para conferência #}
+                        <th>STATUS</th>
+                        <th>DT_ABERTURA</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, chamado in chamados.iterrows() %}
+                    <tr>
+                        <td>{{ chamado.CHAMADO }}</td>
+                        <td>{{ chamado.TITULO }}</td>
+                        <td>{{ chamado.SOLICITANTE }}</td>
+                        <td>{{ chamado.SERVICO }}</td> {# Adicionado para conferência #}
+                        <td>{{ chamado.TIPOCHAMADO }}</td> {# Adicionado para conferência #}
+                        <td>{{ chamado.STATUS_CHAMADO }}</td>
+                        <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {# Incluir controles de paginação NO RODAPÉ #}
+            {% include '_pagination_controls.html' %}
+        {% else %}
+            <p>Nenhum chamado encontrado para os filtros selecionados.</p>
+        {% endif %}
+    </div>
+</body>
+</html>

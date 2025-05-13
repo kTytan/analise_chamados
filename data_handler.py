@@ -145,6 +145,39 @@ def get_chamados(data_inicio, data_fim, area_id=1):
             conn.close()
             # print("Conexão ao MySQL fechada.") # Opcional: remover se ficar muito verboso
 
+def get_distinct_servicos():
+    """Busca todos os serviços distintos para popular filtros."""
+    conn = get_db_connection()
+    if not conn:
+        return pd.DataFrame()
+    
+    query = "SELECT cd_servico, ds_servico FROM softdesk.sd_servico ORDER BY ds_servico;"
+    try:
+        df = pd.read_sql(query, conn)
+        return df
+    except mysql.connector.Error as e:
+        print(f"Erro ao buscar serviços distintos: {e}")
+        return pd.DataFrame()
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
+
+def get_distinct_tipos_chamado():
+    """Busca todos os tipos de chamado distintos para popular filtros."""
+    conn = get_db_connection()
+    if not conn:
+        return pd.DataFrame()
+    
+    query = "SELECT cd_tipo_chamado, ds_tipo_chamado FROM softdesk.sd_tipo_chamado ORDER BY ds_tipo_chamado;"
+    try:
+        df = pd.read_sql(query, conn)
+        return df
+    except mysql.connector.Error as e:
+        print(f"Erro ao buscar tipos de chamado distintos: {e}")
+        return pd.DataFrame()
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
 
 # --- Bloco para Teste ---
 if __name__ == "__main__":
