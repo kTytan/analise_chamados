@@ -1,0 +1,23 @@
+<div style="margin-top: 15px; margin-bottom: 15px; text-align: right;">
+    <a href="{{ url_for('exportar_excel', 
+                        data_inicio=data_inicio, 
+                        data_fim=data_fim,
+                        servico=servico_selecionado if servico_selecionado is defined else '',
+                        tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '') 
+              }}" class="btn-export">
+        Exportar para Excel
+    </a>
+</div>
+<style>
+.btn-export {
+    display: inline-block;
+    padding: 10px 15px;
+    background-color: #17a2b8; /* Cor ciano/info */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.btn-export:hover {
+    background-color: #138496;
+}
