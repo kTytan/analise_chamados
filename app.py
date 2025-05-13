@@ -13,7 +13,9 @@ import plotly.express as px
 app = Flask(__name__)
 
 ITEMS_PER_PAGE = 50
-TOP_N_DEPARTAMENTOS = 10 # Quantos principais departamentos mostrar
+TOP_N_DEPARTAMENTOS = 10
+TOP_N_GRUPOS = 10
+TOP_N_UNIDADES = 10
 
 @app.route('/')
 def index():
@@ -93,6 +95,7 @@ def index():
     print(f"Total de chamados filtrados: {total_chamados_filtrados}, Exibindo página {page} de {total_pages}")
 
     return render_template('index.html',
+                           endpoint='index',
                            chamados=chamados_pagina_df,
                            data_inicio=data_inicio_str,
                            data_fim=data_fim_str,
@@ -105,55 +108,66 @@ def index():
 
 @app.route('/analise_detalhada')
 def analise_detalhada():
-    print("Acessando rota /analise_detalhada")
+    print("--- Rota /analise_detalhada: INÍCIO ---")
 
-    # Obter parâmetros da URL
     data_inicio_form = request.args.get('data_inicio')
     data_fim_form = request.args.get('data_fim')
     servico_selecionado = request.args.get('servico', '')
     tipo_chamado_selecionado = request.args.get('tipo_chamado', '')
-    grupo_solucao_selecionado = request.args.get('grupo_solucao', '') # Novo filtro
-    unidade_selecionada = request.args.get('unidade', '')           # Novo filtro
+    grupo_solucao_selecionado = request.args.get('grupo_solucao', '')
+    unidade_selecionada = request.args.get('unidade', '')
     page = request.args.get('page', 1, type=int)
 
     if data_inicio_form and data_fim_form:
         data_inicio_str = data_inicio_form
         data_fim_str = data_fim_form
     else:
-        data_fim_dt = date.today()
-        data_inicio_dt = data_fim_dt - timedelta(days=29)
+        data_fim_dt = date.today() # Data atual: 13/05/2025
+        data_inicio_dt = data_fim_dt - timedelta(days=29) # Últimos 30 dias
         data_inicio_str = data_inicio_dt.strftime('%Y-%m-%d')
         data_fim_str = data_fim_dt.strftime('%Y-%m-%d')
+    
+    print(f"Filtros de Data Definidos: Início='{data_inicio_str}', Fim='{data_fim_str}'")
+    print(f"Filtro Serviço: '{servico_selecionado}'")
+    print(f"Filtro Tipo Chamado: '{tipo_chamado_selecionado}'")
+    print(f"Filtro Grupo Solução: '{grupo_solucao_selecionado}'")
+    print(f"Filtro Unidade: '{unidade_selecionada}'")
 
-    # Buscar dados para os filtros dropdown
     lista_servicos_df = get_distinct_servicos()
     lista_tipos_chamado_df = get_distinct_tipos_chamado()
-    lista_grupos_solucao_df = get_distinct_grupos_solucao() # Novo
-    lista_unidades_df = get_distinct_unidades()             # Novo
+    lista_grupos_solucao_df = get_distinct_grupos_solucao()
+    lista_unidades_df = get_distinct_unidades()
 
     todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
-    
+    print(f"1. Chamados buscados por data (todos_chamados_df): {len(todos_chamados_df)} registros")
+    # print(todos_chamados_df.head()) # Descomente para ver as primeiras linhas, se necessário
+
     chamados_filtrados_df = todos_chamados_df.copy()
     if servico_selecionado and 'SERVICO' in chamados_filtrados_df.columns:
         chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['SERVICO'] == servico_selecionado]
+        print(f"2. Após filtro Serviço ('{servico_selecionado}'): {len(chamados_filtrados_df)} registros")
+    
     if tipo_chamado_selecionado and 'TIPOCHAMADO' in chamados_filtrados_df.columns:
         chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['TIPOCHAMADO'] == tipo_chamado_selecionado]
-    if grupo_solucao_selecionado and 'GRUPO' in chamados_filtrados_df.columns: # 'GRUPO' é o alias de ds_grupo_solucao
-        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['GRUPO'] == grupo_solucao_selecionado]
-    if unidade_selecionada and 'UNIDADE' in chamados_filtrados_df.columns: # 'UNIDADE' é o alias de nm_filial
-        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['UNIDADE'] == unidade_selecionada]
+        print(f"3. Após filtro Tipo Chamado ('{tipo_chamado_selecionado}'): {len(chamados_filtrados_df)} registros")
 
-    # Inicializar HTML dos gráficos
+    if grupo_solucao_selecionado and 'GRUPO' in chamados_filtrados_df.columns:
+        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['GRUPO'] == grupo_solucao_selecionado]
+        print(f"4. Após filtro Grupo Solução ('{grupo_solucao_selecionado}'): {len(chamados_filtrados_df)} registros")
+
+    if unidade_selecionada and 'UNIDADE' in chamados_filtrados_df.columns:
+        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['UNIDADE'] == unidade_selecionada]
+        print(f"5. Após filtro Unidade ('{unidade_selecionada}'): {len(chamados_filtrados_df)} registros")
+
     grupo_graph_html = None
     unidade_graph_html = None
-
-    # Lógica de Paginação
     total_chamados_final = 0
     chamados_pagina_df = pd.DataFrame()
     total_pages = 0
 
     if not chamados_filtrados_df.empty:
         total_chamados_final = len(chamados_filtrados_df)
+        print(f"6. Total de chamados após todos os filtros (total_chamados_final): {total_chamados_final}")
         total_pages = math.ceil(total_chamados_final / ITEMS_PER_PAGE)
         
         if page < 1: page = 1
@@ -168,61 +182,56 @@ def analise_detalhada():
                 lambda x: x.strftime('%d-%m-%Y') if pd.notna(x) else ''
             )
 
-        # --- Gráfico: Chamados por Grupo de Solução ---
         if 'GRUPO' in chamados_filtrados_df.columns:
             grupo_counts = chamados_filtrados_df['GRUPO'].value_counts().nlargest(TOP_N_GRUPOS)
             if not grupo_counts.empty:
-                fig_grupo = px.bar(
-                    grupo_counts,
-                    x=grupo_counts.index,
-                    y=grupo_counts.values,
-                    title=f'Top {TOP_N_GRUPOS} Grupos de Solução',
-                    labels={'y': 'Nº de Chamados', 'index': 'Grupo de Solução'},
-                    text=grupo_counts.values
-                )
+                print(f"Dados para gráfico de Grupo: {len(grupo_counts)} grupos")
+                fig_grupo = px.bar(grupo_counts, x=grupo_counts.index, y=grupo_counts.values, title=f'Top {TOP_N_GRUPOS} Grupos de Solução', labels={'y': 'Nº de Chamados', 'index': 'Grupo de Solução'}, text=grupo_counts.values)
                 fig_grupo.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=400)
                 fig_grupo.update_xaxes(tickangle=-45)
-                # O primeiro gráfico nesta página carrega o JS do Plotly
-                grupo_graph_html = fig_grupo.to_html(full_html=False, include_plotlyjs='cdn') 
+                grupo_graph_html = fig_grupo.to_html(full_html=False, include_plotlyjs='cdn')
+            else:
+                print("Nenhum dado para o gráfico de Grupo.")
+        else:
+            print("Coluna 'GRUPO' não encontrada para gráfico.")
 
-        # --- Gráfico: Chamados por Unidade ---
+
         if 'UNIDADE' in chamados_filtrados_df.columns:
             unidade_counts = chamados_filtrados_df['UNIDADE'].value_counts().nlargest(TOP_N_UNIDADES)
             if not unidade_counts.empty:
-                fig_unidade = px.bar(
-                    unidade_counts,
-                    x=unidade_counts.index,
-                    y=unidade_counts.values,
-                    title=f'Top {TOP_N_UNIDADES} Unidades',
-                    labels={'y': 'Nº de Chamados', 'index': 'Unidade'},
-                    text=unidade_counts.values
-                )
+                print(f"Dados para gráfico de Unidade: {len(unidade_counts)} unidades")
+                fig_unidade = px.bar(unidade_counts, x=unidade_counts.index, y=unidade_counts.values, title=f'Top {TOP_N_UNIDADES} Unidades', labels={'y': 'Nº de Chamados', 'index': 'Unidade'}, text=unidade_counts.values)
                 fig_unidade.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=400)
                 fig_unidade.update_xaxes(tickangle=-45)
-                # Gráficos subsequentes na mesma página: include_plotlyjs=False
                 unidade_graph_html = fig_unidade.to_html(full_html=False, include_plotlyjs=False)
+            else:
+                print("Nenhum dado para o gráfico de Unidade.")
+        else:
+            print("Coluna 'UNIDADE' não encontrada para gráfico.")
+    else:
+        print("DataFrame 'chamados_filtrados_df' está vazio ANTES da paginação e geração de gráficos.")
+
+    print(f"Valores enviados para o template: total_chamados={total_chamados_final}, page={page}, total_pages={total_pages}")
+    print(f"grupo_graph_html é None? {'Sim' if grupo_graph_html is None else 'Não'}")
+    print(f"unidade_graph_html é None? {'Sim' if unidade_graph_html is None else 'Não'}")
+    print("--- Rota /analise_detalhada: FIM ---")
 
     return render_template('analise_detalhada.html',
+                           endpoint='analise_detalhada',
                            chamados=chamados_pagina_df,
-                           data_inicio=data_inicio_str,
-                           data_fim=data_fim_str,
-                           # Para os filtros
+                           data_inicio=data_inicio_str, data_fim=data_fim_str,
                            servicos=lista_servicos_df.to_dict(orient='records'),
                            tipos_chamado=lista_tipos_chamado_df.to_dict(orient='records'),
-                           grupos_solucao=lista_grupos_solucao_df.to_dict(orient='records'), # Novo
-                           unidades=lista_unidades_df.to_dict(orient='records'),             # Novo
+                           grupos_solucao=lista_grupos_solucao_df.to_dict(orient='records'),
+                           unidades=lista_unidades_df.to_dict(orient='records'),
                            servico_selecionado=servico_selecionado,
                            tipo_chamado_selecionado=tipo_chamado_selecionado,
-                           grupo_solucao_selecionado=grupo_solucao_selecionado, # Novo
-                           unidade_selecionada=unidade_selecionada,             # Novo
-                           # Para paginação
+                           grupo_solucao_selecionado=grupo_solucao_selecionado,
+                           unidade_selecionada=unidade_selecionada,
                            total_chamados=total_chamados_final,
-                           page=page,
-                           total_pages=total_pages,
-                           items_per_page=ITEMS_PER_PAGE,
-                           # Gráficos
-                           grupo_graph_html=grupo_graph_html,     # Novo
-                           unidade_graph_html=unidade_graph_html  # Novo
+                           page=page, total_pages=total_pages, items_per_page=ITEMS_PER_PAGE,
+                           grupo_graph_html=grupo_graph_html,
+                           unidade_graph_html=unidade_graph_html
                            )
 
 @app.route('/exportar_excel')

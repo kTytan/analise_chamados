@@ -14,51 +14,36 @@
         nav a:hover { text-decoration: underline; }
 
         .info { background-color: #f0f8ff; border-left: 5px solid #007bff; padding: 10px; border-radius: 5px; margin-bottom:20px;}
-        .filters { background-color: #f1f1f1; padding: 20px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; } /* Reduzida margem inferior */
-        .filter-group { display: flex; flex-direction: column; }
+        .filters { background-color: #f1f1f1; padding: 20px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; justify-content: center; }
+        .filter-group { display: flex; flex-direction: column; margin-bottom: 10px; }
         .filters label { margin-bottom: 5px; font-weight: bold; }
         .filters input[type="date"], .filters select, .filters button { 
             padding: 10px; 
             border-radius: 4px; 
             border: 1px solid #ccc; 
             font-size: 1em;
+            min-width: 180px; 
         }
-        .filters button { background-color: #28a745; color: white; cursor: pointer; border: none; }
+        .filters button { background-color: #28a745; color: white; cursor: pointer; border: none; min-width: auto; }
         .filters button:hover { background-color: #218838; }
         
-        /* Estilo para o botão de exportar */
-        .btn-export {
-            display: inline-block;
-            padding: 10px 15px;
-            background-color: #17a2b8; /* Cor ciano/info */
-            color: white !important; /* Garante que a cor do texto seja branca */
-            text-decoration: none;
-            border-radius: 4px;
-            font-size: 0.9em;
-            border: none;
-            cursor: pointer;
-        }
-        .btn-export:hover {
-            background-color: #138496;
-            text-decoration: none;
-        }
-        /* Div para alinhar o botão à direita */
-        .export-button-container {
-            text-align: right;
-            margin-bottom: 20px;
-        }
+        .btn-export { display: inline-block; padding: 10px 15px; background-color: #17a2b8; color: white !important; text-decoration: none; border-radius: 4px; font-size: 0.9em; border: none; cursor: pointer; }
+        .btn-export:hover { background-color: #138496; text-decoration: none; }
+        .export-button-container { text-align: right; margin-bottom: 20px; }
 
         .charts-row { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px; margin-bottom: 20px; }
-        .chart-container { flex: 1 1 400px; min-width: 350px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
+        .chart-container { flex: 1 1 45%; min-width: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #e9ecef; }
         .pagination { margin-top: 20px; margin-bottom: 20px; text-align: center; }
         .pagination .pagination-item { margin: 0 2px; padding: 8px 12px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px; display: inline-block; }
         .pagination .ellipsis { border: none; color: #333; padding: 8px 6px; }
         .pagination .current-page { background-color: #007bff; color: white; border-color: #007bff; }
         .pagination .disabled { color: #ccc; pointer-events: none; border-color: #eee; }
+
+        .debug-info { background-color: #fffacd; border: 1px dashed red; padding: 10px; margin: 15px 0; font-family: monospace; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -71,7 +56,7 @@
         <h1>Análise Detalhada de Chamados</h1>
 
         <div class="filters">
-            <form method="GET" action="{{ url_for('analise_detalhada') }}" style="width:100%; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end;">
+            <form method="GET" action="{{ url_for('analise_detalhada') }}" style="width:100%; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; justify-content: center;">
                 <div class="filter-group">
                     <label for="data_inicio">Data Início:</label>
                     <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
@@ -80,7 +65,6 @@
                     <label for="data_fim">Data Fim:</label>
                     <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
                 </div>
-
                 <div class="filter-group">
                     <label for="servico">Serviço:</label>
                     <select id="servico" name="servico">
@@ -92,7 +76,6 @@
                         {% endfor %}
                     </select>
                 </div>
-
                 <div class="filter-group">
                     <label for="tipo_chamado">Tipo de Chamado:</label>
                     <select id="tipo_chamado" name="tipo_chamado">
@@ -104,16 +87,64 @@
                         {% endfor %}
                     </select>
                 </div>
-                
+                <div class="filter-group">
+                    <label for="grupo_solucao">Grupo de Solução:</label>
+                    <select id="grupo_solucao" name="grupo_solucao">
+                        <option value="">Todos</option>
+                        {% for gs in grupos_solucao %}
+                            <option value="{{ gs.ds_grupo_solucao }}" {% if gs.ds_grupo_solucao == grupo_solucao_selecionado %}selected{% endif %}>
+                                {{ gs.ds_grupo_solucao }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="unidade">Unidade:</label>
+                    <select id="unidade" name="unidade">
+                        <option value="">Todas</option>
+                        {% for u in unidades %}
+                            <option value="{{ u.nm_filial }}" {% if u.nm_filial == unidade_selecionada %}selected{% endif %}>
+                                {{ u.nm_filial }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
                 <div class="filter-group">
                     <button type="submit">Filtrar</button>
                 </div>
             </form>
         </div>
 
-        {# --- BOTÃO DE EXPORTAÇÃO ADICIONADO AQUI --- #}
         <div class="export-button-container">
             {% include '_export_button.html' %}
+        </div>
+        
+        {# --- PRINTS DE DEPURAÇÃO ADICIONADOS AQUI --- #}
+        <div class="debug-info">
+            <p><strong>DEBUG INFO PARA GRÁFICOS:</strong></p>
+            <p>grupo_graph_html is defined? <strong>{{ grupo_graph_html is defined }}</strong></p>
+            <p>grupo_graph_html is not none? <strong>{{ grupo_graph_html is not none }}</strong></p>
+            <p>grupo_graph_html é string vazia? <strong>{{ grupo_graph_html == "" }}</strong></p>
+            <p>Conteúdo de grupo_graph_html (primeiros 100 chars, se não for None): {{ grupo_graph_html[:100] if grupo_graph_html else "N/A" }}</p>
+            <hr>
+            <p>unidade_graph_html is defined? <strong>{{ unidade_graph_html is defined }}</strong></p>
+            <p>unidade_graph_html is not none? <strong>{{ unidade_graph_html is not none }}</strong></p>
+            <p>unidade_graph_html é string vazia? <strong>{{ unidade_graph_html == "" }}</strong></p>
+            <p>Conteúdo de unidade_graph_html (primeiros 100 chars, se não for None): {{ unidade_graph_html[:100] if unidade_graph_html else "N/A" }}</p>
+        </div>
+        {# --- FIM DOS PRINTS DE DEPURAÇÃO --- #}
+
+        <div class="charts-row"> {# Container para os gráficos desta página #}
+            {% if grupo_graph_html %}
+                <div class="chart-container">
+                    {{ grupo_graph_html|safe }}
+                </div>
+            {% endif %}
+            {% if unidade_graph_html %}
+                <div class="chart-container">
+                    {{ unidade_graph_html|safe }}
+                </div>
+            {% endif %}
         </div>
 
         {% include '_pagination_controls.html' %}
@@ -122,14 +153,11 @@
             <p>Período: <strong>{{ data_inicio }}</strong> a <strong>{{ data_fim }}</strong>.</p>
             {% if servico_selecionado %}<p>Serviço: <strong>{{ servico_selecionado }}</strong>.</p>{% endif %}
             {% if tipo_chamado_selecionado %}<p>Tipo: <strong>{{ tipo_chamado_selecionado }}</strong>.</p>{% endif %}
+            {% if grupo_solucao_selecionado %}<p>Grupo Solução: <strong>{{ grupo_solucao_selecionado }}</strong>.</p>{% endif %}
+            {% if unidade_selecionada %}<p>Unidade: <strong>{{ unidade_selecionada }}</strong>.</p>{% endif %}
             <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. 
                Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
         </div>
-
-        {# Espaço para futuros gráficos nesta página #}
-        <div class="charts-row">
-             </div>
-
 
         {% if total_chamados > 0 %}
             <h2>Chamados Filtrados ({{ items_per_page }} por página):</h2>
@@ -141,6 +169,8 @@
                         <th>SOLICITANTE</th>
                         <th>SERVICO</th>
                         <th>TIPOCHAMADO</th>
+                        <th>GRUPO</th>
+                        <th>UNIDADE</th>
                         <th>STATUS</th>
                         <th>DT_ABERTURA</th>
                     </tr>
@@ -153,6 +183,8 @@
                         <td>{{ chamado.SOLICITANTE }}</td>
                         <td>{{ chamado.SERVICO }}</td>
                         <td>{{ chamado.TIPOCHAMADO }}</td>
+                        <td>{{ chamado.GRUPO }}</td>
+                        <td>{{ chamado.UNIDADE }}</td>
                         <td>{{ chamado.STATUS_CHAMADO }}</td>
                         <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td>
                     </tr>
