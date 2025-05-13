@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Chamados</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        .info { background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-bottom:20px;}
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #e9e9e9; }
+    </style>
+</head>
+<body>
+    <h1>Dashboard de Chamados</h1>
+
+    <div class="info">
+        <p>Exibindo dados para o período de: <strong>{{ data_inicio }}</strong> até <strong>{{ data_fim }}</strong>.</p>
+        <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>.</p>
+    </div>
+
+    {% if total_chamados > 0 %}
+        <h2>Primeiros 10 Chamados:</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>CHAMADO</th>
+                    <th>TITULO</th>
+                    <th>SOLICITANTE</th>
+                    <th>STATUS</th>
+                    <th>DT_ABERTURA</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for index, chamado in chamados.head(10).iterrows() %}
+                <tr>
+                    <td>{{ chamado.CHAMADO }}</td>
+                    <td>{{ chamado.TITULO }}</td>
+                    <td>{{ chamado.SOLICITANTE }}</td>
+                    <td>{{ chamado.STATUS_CHAMADO }}</td>
+                    <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td> {# <--- MUDANÇA AQUI #}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Nenhum chamado encontrado para o período selecionado.</p>
+    {% endif %}
+
+</body>
+</html>
