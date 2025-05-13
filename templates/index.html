@@ -8,21 +8,67 @@
         body { font-family: sans-serif; margin: 20px; }
         h1 { color: #333; }
         .info { background-color: #f4f4f4; padding: 10px; border-radius: 5px; margin-bottom:20px;}
+        .filters { background-color: #e9e9e9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .filters label { margin-right: 5px; }
+        .filters input[type="date"], .filters button { padding: 8px; margin-right: 10px; border-radius: 3px; border: 1px solid #ccc; }
+        .filters button { background-color: #007bff; color: white; cursor: pointer; }
+        .filters button:hover { background-color: #0056b3; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #e9e9e9; }
+        th { background-color: #e0e0e0; }
+        .pagination { margin-top: 20px; margin-bottom: 20px; text-align: center; }
+        .pagination .pagination-item { /* Aplicado a todos os itens, incluindo spans */
+            margin: 0 2px; /* Reduzido o espaçamento lateral */
+            padding: 8px 12px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            color: #007bff;
+            border-radius: 4px;
+            display: inline-block; /* Para que padding e margin funcionem bem */
+        }
+        .pagination .ellipsis { /* Estilo para as reticências */
+            border: none;
+            color: #333;
+            padding: 8px 6px; /* Ajuste para alinhar melhor */
+        }
+        .pagination .current-page {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .pagination .disabled {
+            color: #ccc;
+            pointer-events: none;
+            border-color: #eee;
+        }
     </style>
 </head>
 <body>
     <h1>Dashboard de Chamados</h1>
 
+    <div class="filters">
+        <form method="GET" action="/">
+            <label for="data_inicio">Data Início:</label>
+            <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
+
+            <label for="data_fim">Data Fim:</label>
+            <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
+
+            <button type="submit">Filtrar</button>
+        </form>
+    </div>
+
+    {# Incluir controles de paginação NO TOPO #}
+    {% include '_pagination_controls.html' %}
+
     <div class="info">
         <p>Exibindo dados para o período de: <strong>{{ data_inicio }}</strong> até <strong>{{ data_fim }}</strong>.</p>
-        <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>.</p>
+        <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. 
+           Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
     </div>
 
     {% if total_chamados > 0 %}
-        <h2>Primeiros 10 Chamados:</h2>
+        <h2>Chamados ({{ items_per_page }} por página):</h2>
         <table>
             <thead>
                 <tr>
@@ -34,17 +80,21 @@
                 </tr>
             </thead>
             <tbody>
-                {% for index, chamado in chamados.head(10).iterrows() %}
+                {% for index, chamado in chamados.iterrows() %}
                 <tr>
                     <td>{{ chamado.CHAMADO }}</td>
                     <td>{{ chamado.TITULO }}</td>
                     <td>{{ chamado.SOLICITANTE }}</td>
                     <td>{{ chamado.STATUS_CHAMADO }}</td>
-                    <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td> {# <--- MUDANÇA AQUI #}
+                    <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        {# Incluir controles de paginação NO RODAPÉ #}
+        {% include '_pagination_controls.html' %}
+
     {% else %}
         <p>Nenhum chamado encontrado para o período selecionado.</p>
     {% endif %}
