@@ -1,7 +1,10 @@
 # app.py
 from flask import Flask, render_template, request, url_for, Response
 import io
-from data_handler import get_chamados, get_distinct_servicos, get_distinct_tipos_chamado
+from data_handler import (
+    get_chamados, get_distinct_servicos, get_distinct_tipos_chamado,
+    get_distinct_grupos_solucao, get_distinct_unidades
+)
 from datetime import date, timedelta
 import pandas as pd
 import math
@@ -102,16 +105,17 @@ def index():
 
 @app.route('/analise_detalhada')
 def analise_detalhada():
-    print("Acessando rota /analise_detalhada") # Para depuração
+    print("Acessando rota /analise_detalhada")
 
     # Obter parâmetros da URL
     data_inicio_form = request.args.get('data_inicio')
     data_fim_form = request.args.get('data_fim')
-    servico_selecionado = request.args.get('servico', '') # Padrão vazio se não selecionado
-    tipo_chamado_selecionado = request.args.get('tipo_chamado', '') # Padrão vazio
+    servico_selecionado = request.args.get('servico', '')
+    tipo_chamado_selecionado = request.args.get('tipo_chamado', '')
+    grupo_solucao_selecionado = request.args.get('grupo_solucao', '') # Novo filtro
+    unidade_selecionada = request.args.get('unidade', '')           # Novo filtro
     page = request.args.get('page', 1, type=int)
 
-    # Definir datas padrão se não fornecidas
     if data_inicio_form and data_fim_form:
         data_inicio_str = data_inicio_form
         data_fim_str = data_fim_form
@@ -124,25 +128,26 @@ def analise_detalhada():
     # Buscar dados para os filtros dropdown
     lista_servicos_df = get_distinct_servicos()
     lista_tipos_chamado_df = get_distinct_tipos_chamado()
+    lista_grupos_solucao_df = get_distinct_grupos_solucao() # Novo
+    lista_unidades_df = get_distinct_unidades()             # Novo
 
-    # Buscar todos os chamados com base no filtro de data inicial
-    # (Os filtros de serviço e tipo serão aplicados no Pandas por enquanto)
     todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
     
-    # Aplicar filtros de Serviço e Tipo de Chamado no DataFrame (se selecionados)
-    chamados_filtrados_df = todos_chamados_df.copy() # Começa com todos os dados do período
-    if servico_selecionado and not lista_servicos_df.empty:
-        # Precisamos do nome do serviço, não do ID, para filtrar no DataFrame atual
-        # Se tivéssemos o cd_servico no todos_chamados_df, poderíamos filtrar por ele.
-        # Por ora, vamos assumir que a coluna 'SERVICO' (texto) existe no todos_chamados_df
+    chamados_filtrados_df = todos_chamados_df.copy()
+    if servico_selecionado and 'SERVICO' in chamados_filtrados_df.columns:
         chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['SERVICO'] == servico_selecionado]
-    
-    if tipo_chamado_selecionado and not lista_tipos_chamado_df.empty:
-        # Similarmente, para tipo de chamado, usando a coluna de descrição.
+    if tipo_chamado_selecionado and 'TIPOCHAMADO' in chamados_filtrados_df.columns:
         chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['TIPOCHAMADO'] == tipo_chamado_selecionado]
+    if grupo_solucao_selecionado and 'GRUPO' in chamados_filtrados_df.columns: # 'GRUPO' é o alias de ds_grupo_solucao
+        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['GRUPO'] == grupo_solucao_selecionado]
+    if unidade_selecionada and 'UNIDADE' in chamados_filtrados_df.columns: # 'UNIDADE' é o alias de nm_filial
+        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['UNIDADE'] == unidade_selecionada]
 
+    # Inicializar HTML dos gráficos
+    grupo_graph_html = None
+    unidade_graph_html = None
 
-    # Lógica de Paginação (similar à da página index)
+    # Lógica de Paginação
     total_chamados_final = 0
     chamados_pagina_df = pd.DataFrame()
     total_pages = 0
@@ -162,8 +167,40 @@ def analise_detalhada():
             chamados_pagina_df.loc[:, 'DT_ABERTURA_FORMATADA'] = chamados_pagina_df['DT_ABERTURA_RAW'].apply(
                 lambda x: x.strftime('%d-%m-%Y') if pd.notna(x) else ''
             )
-    
-    # TODO: Adicionar lógica para gráficos específicos desta página aqui
+
+        # --- Gráfico: Chamados por Grupo de Solução ---
+        if 'GRUPO' in chamados_filtrados_df.columns:
+            grupo_counts = chamados_filtrados_df['GRUPO'].value_counts().nlargest(TOP_N_GRUPOS)
+            if not grupo_counts.empty:
+                fig_grupo = px.bar(
+                    grupo_counts,
+                    x=grupo_counts.index,
+                    y=grupo_counts.values,
+                    title=f'Top {TOP_N_GRUPOS} Grupos de Solução',
+                    labels={'y': 'Nº de Chamados', 'index': 'Grupo de Solução'},
+                    text=grupo_counts.values
+                )
+                fig_grupo.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=400)
+                fig_grupo.update_xaxes(tickangle=-45)
+                # O primeiro gráfico nesta página carrega o JS do Plotly
+                grupo_graph_html = fig_grupo.to_html(full_html=False, include_plotlyjs='cdn') 
+
+        # --- Gráfico: Chamados por Unidade ---
+        if 'UNIDADE' in chamados_filtrados_df.columns:
+            unidade_counts = chamados_filtrados_df['UNIDADE'].value_counts().nlargest(TOP_N_UNIDADES)
+            if not unidade_counts.empty:
+                fig_unidade = px.bar(
+                    unidade_counts,
+                    x=unidade_counts.index,
+                    y=unidade_counts.values,
+                    title=f'Top {TOP_N_UNIDADES} Unidades',
+                    labels={'y': 'Nº de Chamados', 'index': 'Unidade'},
+                    text=unidade_counts.values
+                )
+                fig_unidade.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=400)
+                fig_unidade.update_xaxes(tickangle=-45)
+                # Gráficos subsequentes na mesma página: include_plotlyjs=False
+                unidade_graph_html = fig_unidade.to_html(full_html=False, include_plotlyjs=False)
 
     return render_template('analise_detalhada.html',
                            chamados=chamados_pagina_df,
@@ -172,14 +209,20 @@ def analise_detalhada():
                            # Para os filtros
                            servicos=lista_servicos_df.to_dict(orient='records'),
                            tipos_chamado=lista_tipos_chamado_df.to_dict(orient='records'),
+                           grupos_solucao=lista_grupos_solucao_df.to_dict(orient='records'), # Novo
+                           unidades=lista_unidades_df.to_dict(orient='records'),             # Novo
                            servico_selecionado=servico_selecionado,
                            tipo_chamado_selecionado=tipo_chamado_selecionado,
+                           grupo_solucao_selecionado=grupo_solucao_selecionado, # Novo
+                           unidade_selecionada=unidade_selecionada,             # Novo
                            # Para paginação
                            total_chamados=total_chamados_final,
                            page=page,
                            total_pages=total_pages,
-                           items_per_page=ITEMS_PER_PAGE
-                           # Adicionar variáveis para gráficos aqui depois
+                           items_per_page=ITEMS_PER_PAGE,
+                           # Gráficos
+                           grupo_graph_html=grupo_graph_html,     # Novo
+                           unidade_graph_html=unidade_graph_html  # Novo
                            )
 
 @app.route('/exportar_excel')

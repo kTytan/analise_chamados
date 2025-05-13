@@ -178,8 +178,42 @@ def get_distinct_tipos_chamado():
     finally:
         if conn and conn.is_connected():
             conn.close()
+def get_distinct_grupos_solucao():
+    """Busca todos os grupos de solução distintos para popular filtros."""
+    conn = get_db_connection()
+    if not conn:
+        return pd.DataFrame()
+    
+    # A sua query original usa g.ds_grupo_solucao AS GRUPO e c.cd_grupo_solucao
+    query = "SELECT cd_grupo_solucao, ds_grupo_solucao FROM softdesk.sd_grupo_solucao ORDER BY ds_grupo_solucao;"
+    try:
+        df = pd.read_sql(query, conn)
+        return df
+    except mysql.connector.Error as e:
+        print(f"Erro ao buscar grupos de solução distintos: {e}")
+        return pd.DataFrame()
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
 
-# --- Bloco para Teste ---
+def get_distinct_unidades():
+    """Busca todas as unidades (filiais) distintas para popular filtros."""
+    conn = get_db_connection()
+    if not conn:
+        return pd.DataFrame()
+    
+    # A sua query original usa f.nm_filial AS UNIDADE e c.cd_filial
+    query = "SELECT cd_filial, nm_filial FROM softdesk.sd_filial ORDER BY nm_filial;"
+    try:
+        df = pd.read_sql(query, conn)
+        return df
+    except mysql.connector.Error as e:
+        print(f"Erro ao buscar unidades distintas: {e}")
+        return pd.DataFrame()
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
+
 if __name__ == "__main__":
     print("Testando a função get_chamados...")
 
