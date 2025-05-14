@@ -1,48 +1,37 @@
 {# templates/_pagination_controls.html #}
 {% if total_pages > 1 %}
 <div class="pagination">
-    {# Link para Primeira Página #}
-    <a href="{{ url_for('index', page=1, data_inicio=data_inicio, data_fim=data_fim) }}"
+    <a href="{{ url_for(endpoint, page=1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == 1 else '' }}">Primeira</a>
 
-    {# Link para Página Anterior #}
-    <a href="{{ url_for('index', page=page-1, data_inicio=data_inicio, data_fim=data_fim) }}"
+    <a href="{{ url_for(endpoint, page=page-1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == 1 else '' }}">Anterior</a>
 
-    {# Lógica dos Números de Página #}
-    {% set link_window = 2 %} {# Quantos números de cada lado da página atual para mostrar #}
+    {% set link_window = 2 %}
     {% set show_first_ellipsis = false %}
     {% set show_last_ellipsis = false %}
-
     {% for p_num in range(1, total_pages + 1) %}
         {% if p_num == 1 or p_num == total_pages or (p_num >= page - link_window and p_num <= page + link_window) %}
-            {# Sempre mostra a primeira, a última e as páginas dentro da "janela" #}
             {% if p_num == page %}
                 <span class="pagination-item current-page">{{ p_num }}</span>
             {% else %}
-                <a href="{{ url_for('index', page=p_num, data_inicio=data_inicio, data_fim=data_fim) }}" class="pagination-item">{{ p_num }}</a>
+                <a href="{{ url_for(endpoint, page=p_num, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}" class="pagination-item">{{ p_num }}</a>
             {% endif %}
-            {# Reseta as flags de reticências se um número dentro da janela foi mostrado #}
             {% if p_num == 1 and p_num < page - link_window -1 %} {% set show_first_ellipsis = false %} {% endif %}
             {% if p_num == total_pages and p_num > page + link_window + 1 %} {% set show_last_ellipsis = false %} {% endif %}
-
         {% elif p_num < page - link_window and not show_first_ellipsis %}
-            {# Mostra reticências antes da janela, mas apenas uma vez #}
             <span class="pagination-item ellipsis">...</span>
             {% set show_first_ellipsis = true %}
         {% elif p_num > page + link_window and not show_last_ellipsis %}
-            {# Mostra reticências depois da janela, mas apenas uma vez #}
             <span class="pagination-item ellipsis">...</span>
             {% set show_last_ellipsis = true %}
         {% endif %}
     {% endfor %}
 
-    {# Link para Próxima Página #}
-    <a href="{{ url_for('index', page=page+1, data_inicio=data_inicio, data_fim=data_fim) }}"
+    <a href="{{ url_for(endpoint, page=page+1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == total_pages else '' }}">Próxima</a>
 
-    {# Link para Última Página #}
-    <a href="{{ url_for('index', page=total_pages, data_inicio=data_inicio, data_fim=data_fim) }}"
+    <a href="{{ url_for(endpoint, page=total_pages, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == total_pages else '' }}">Última</a>
 </div>
 {% endif %}
