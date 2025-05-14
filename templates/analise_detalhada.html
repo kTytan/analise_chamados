@@ -119,22 +119,18 @@
             {% include '_export_button.html' %}
         </div>
         
-        {# --- PRINTS DE DEPURAÇÃO ADICIONADOS AQUI --- #}
+        {# Prints de depuração podem ser removidos ou comentados se tudo estiver funcionando #}
+        {# 
         <div class="debug-info">
             <p><strong>DEBUG INFO PARA GRÁFICOS:</strong></p>
-            <p>grupo_graph_html is defined? <strong>{{ grupo_graph_html is defined }}</strong></p>
-            <p>grupo_graph_html is not none? <strong>{{ grupo_graph_html is not none }}</strong></p>
-            <p>grupo_graph_html é string vazia? <strong>{{ grupo_graph_html == "" }}</strong></p>
-            <p>Conteúdo de grupo_graph_html (primeiros 100 chars, se não for None): {{ grupo_graph_html[:100] if grupo_graph_html else "N/A" }}</p>
-            <hr>
-            <p>unidade_graph_html is defined? <strong>{{ unidade_graph_html is defined }}</strong></p>
-            <p>unidade_graph_html is not none? <strong>{{ unidade_graph_html is not none }}</strong></p>
-            <p>unidade_graph_html é string vazia? <strong>{{ unidade_graph_html == "" }}</strong></p>
-            <p>Conteúdo de unidade_graph_html (primeiros 100 chars, se não for None): {{ unidade_graph_html[:100] if unidade_graph_html else "N/A" }}</p>
+            <p>grupo_graph_html is defined? <strong>{{ grupo_graph_html is defined }}</strong> | not none? <strong>{{ grupo_graph_html is not none }}</strong> | é string vazia? <strong>{{ grupo_graph_html == "" }}</strong></p>
+            <p>unidade_graph_html is defined? <strong>{{ unidade_graph_html is defined }}</strong> | not none? <strong>{{ unidade_graph_html is not none }}</strong> | é string vazia? <strong>{{ unidade_graph_html == "" }}</strong></p>
+            <p>servico_graph_html is defined? <strong>{{ servico_graph_html is defined }}</strong> | not none? <strong>{{ servico_graph_html is not none }}</strong> | é string vazia? <strong>{{ servico_graph_html == "" }}</strong></p>
+            <p>tipo_chamado_graph_html is defined? <strong>{{ tipo_chamado_graph_html is defined }}</strong> | not none? <strong>{{ tipo_chamado_graph_html is not none }}</strong> | é string vazia? <strong>{{ tipo_chamado_graph_html == "" }}</strong></p>
         </div>
-        {# --- FIM DOS PRINTS DE DEPURAÇÃO --- #}
+        #}
 
-        <div class="charts-row"> {# Container para os gráficos desta página #}
+        <div class="charts-row">
             {% if grupo_graph_html %}
                 <div class="chart-container">
                     {{ grupo_graph_html|safe }}
@@ -143,6 +139,17 @@
             {% if unidade_graph_html %}
                 <div class="chart-container">
                     {{ unidade_graph_html|safe }}
+                </div>
+            {% endif %}
+            {# --- Adicionar Novos Gráficos Aqui --- #}
+            {% if servico_graph_html %}
+                <div class="chart-container">
+                    {{ servico_graph_html|safe }}
+                </div>
+            {% endif %}
+            {% if tipo_chamado_graph_html %}
+                <div class="chart-container">
+                    {{ tipo_chamado_graph_html|safe }}
                 </div>
             {% endif %}
         </div>
