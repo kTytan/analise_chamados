@@ -91,6 +91,7 @@ def index():
 def analise_detalhada():
     print("Acessando rota /analise_detalhada")
 
+    # Obter parâmetros da URL
     data_inicio_form = request.args.get('data_inicio')
     data_fim_form = request.args.get('data_fim')
     servico_selecionado_filtro = request.args.get('servico', '')
@@ -104,11 +105,14 @@ def analise_detalhada():
         data_inicio_str = data_inicio_form
         data_fim_str = data_fim_form
     else:
-        data_fim_dt = date.today() # Data atual, ex: 14/05/2025
-        data_inicio_dt = data_fim_dt - timedelta(days=365*1 + 29) # Período padrão de ~1 ano e 1 mês para ter dados para evolução
+        # Data atual: Quinta-feira, 15 de Maio de 2025
+        data_fim_dt = date.today() 
+        # Período padrão para ter dados suficientes para gráficos de evolução (ex: últimos ~13 meses)
+        data_inicio_dt = data_fim_dt - timedelta(days=365 + 30) 
         data_inicio_str = data_inicio_dt.strftime('%Y-%m-%d')
         data_fim_str = data_fim_dt.strftime('%Y-%m-%d')
 
+    # Buscar dados para os filtros dropdown
     lista_servicos_df = get_distinct_servicos()
     lista_tipos_chamado_df = get_distinct_tipos_chamado()
     lista_grupos_solucao_df = get_distinct_grupos_solucao()
@@ -118,6 +122,7 @@ def analise_detalhada():
     todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
     
     chamados_filtrados_df = todos_chamados_df.copy()
+    # Aplicar filtros no DataFrame
     if servico_selecionado_filtro and 'SERVICO' in chamados_filtrados_df.columns:
         chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['SERVICO'] == servico_selecionado_filtro]
     if tipo_chamado_selecionado_filtro and 'TIPOCHAMADO' in chamados_filtrados_df.columns:
@@ -129,34 +134,37 @@ def analise_detalhada():
     if status_chamado_selecionado and 'STATUS_CHAMADO' in chamados_filtrados_df.columns:
         chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['STATUS_CHAMADO'] == status_chamado_selecionado]
 
+    # Inicializar HTML dos gráficos
     grupo_graph_html = None
     unidade_graph_html = None
     servico_graph_html = None
     tipo_chamado_graph_html = None
-    evolucao_mensal_graph_html = None
-    primeiro_grafico_js_carregado_analise = False
+    evolucao_mensal_geral_graph_html = None # Renomeado do anterior
+    evolucao_tipo_graph_html = None      # Novo gráfico
 
+    primeiro_grafico_js_carregado_analise = False # Flag para controlar o carregamento do JS do Plotly
 
+    # Lógica de Paginação e Gráficos
     total_chamados_final = 0
     chamados_pagina_df = pd.DataFrame()
     total_pages = 0
 
     if not chamados_filtrados_df.empty:
         total_chamados_final = len(chamados_filtrados_df)
+        # ... (lógica de paginação existente - sem alterações) ...
         total_pages = math.ceil(total_chamados_final / ITEMS_PER_PAGE)
-        
         if page < 1: page = 1
         elif page > total_pages and total_pages > 0: page = total_pages
-        
         start_index = (page - 1) * ITEMS_PER_PAGE
         end_index = start_index + ITEMS_PER_PAGE
         chamados_pagina_df = chamados_filtrados_df.iloc[start_index:end_index].copy()
-
         if 'DT_ABERTURA_RAW' in chamados_pagina_df.columns:
             chamados_pagina_df.loc[:, 'DT_ABERTURA_FORMATADA'] = chamados_pagina_df['DT_ABERTURA_RAW'].apply(
                 lambda x: x.strftime('%d-%m-%Y') if pd.notna(x) else ''
             )
-
+        
+        # --- GRÁFICOS ---
+        # Gráfico 1: Grupo de Solução
         if 'GRUPO' in chamados_filtrados_df.columns:
             grupo_counts = chamados_filtrados_df['GRUPO'].value_counts().nlargest(TOP_N_GRUPOS)
             if not grupo_counts.empty:
@@ -165,7 +173,8 @@ def analise_detalhada():
                 fig_grupo.update_xaxes(tickangle=-45)
                 grupo_graph_html = fig_grupo.to_html(full_html=False, include_plotlyjs='cdn')
                 primeiro_grafico_js_carregado_analise = True
-
+        
+        # Gráfico 2: Unidade
         if 'UNIDADE' in chamados_filtrados_df.columns:
             unidade_counts = chamados_filtrados_df['UNIDADE'].value_counts().nlargest(TOP_N_UNIDADES)
             if not unidade_counts.empty:
@@ -174,7 +183,8 @@ def analise_detalhada():
                 fig_unidade.update_xaxes(tickangle=-45)
                 unidade_graph_html = fig_unidade.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_analise)
                 if not primeiro_grafico_js_carregado_analise: primeiro_grafico_js_carregado_analise = True
-        
+
+        # Gráfico 3: Serviço
         if 'SERVICO' in chamados_filtrados_df.columns:
             servico_counts = chamados_filtrados_df['SERVICO'].value_counts().nlargest(TOP_N_SERVICOS)
             if not servico_counts.empty:
@@ -184,6 +194,7 @@ def analise_detalhada():
                 servico_graph_html = fig_servico.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_analise)
                 if not primeiro_grafico_js_carregado_analise: primeiro_grafico_js_carregado_analise = True
 
+        # Gráfico 4: Tipo de Chamado
         if 'TIPOCHAMADO' in chamados_filtrados_df.columns:
             tipo_chamado_counts = chamados_filtrados_df['TIPOCHAMADO'].value_counts()
             if not tipo_chamado_counts.empty:
@@ -192,23 +203,57 @@ def analise_detalhada():
                 tipo_chamado_graph_html = fig_tipo_chamado.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_analise)
                 if not primeiro_grafico_js_carregado_analise: primeiro_grafico_js_carregado_analise = True
         
+        # Gráfico 5: Evolução Mensal Geral (o que chamamos de evolucao_mensal_graph_html antes)
         if 'DT_ABERTURA_RAW' in chamados_filtrados_df.columns:
-            df_temp_evolucao = chamados_filtrados_df.copy()
-            df_temp_evolucao['DT_ABERTURA_RAW'] = pd.to_datetime(df_temp_evolucao['DT_ABERTURA_RAW'], errors='coerce')
-            df_temp_evolucao.dropna(subset=['DT_ABERTURA_RAW'], inplace=True)
+            df_evol_geral = chamados_filtrados_df.copy()
+            df_evol_geral['DT_ABERTURA_RAW'] = pd.to_datetime(df_evol_geral['DT_ABERTURA_RAW'], errors='coerce')
+            df_evol_geral.dropna(subset=['DT_ABERTURA_RAW'], inplace=True)
+            if not df_evol_geral.empty:
+                df_evol_geral['MES_ANO_ABERTURA'] = df_evol_geral['DT_ABERTURA_RAW'].dt.to_period('M')
+                chamados_por_mes_geral = df_evol_geral.groupby('MES_ANO_ABERTURA').size().reset_index(name='CONTAGEM').sort_values(by='MES_ANO_ABERTURA')
+                chamados_por_mes_geral['MES_ANO_ABERTURA'] = chamados_por_mes_geral['MES_ANO_ABERTURA'].astype(str)
+                if not chamados_por_mes_geral.empty:
+                    fig_evol_geral = px.line(chamados_por_mes_geral, x='MES_ANO_ABERTURA', y='CONTAGEM', title='Evolução Mensal Geral de Chamados', markers=True, labels={'MES_ANO_ABERTURA': 'Mês/Ano', 'CONTAGEM': 'Nº de Chamados'})
+                    fig_evol_geral.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=450)
+                    fig_evol_geral.update_xaxes(tickangle=-45, type='category')
+                    evolucao_mensal_geral_graph_html = fig_evol_geral.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_analise)
+                    if not primeiro_grafico_js_carregado_analise: primeiro_grafico_js_carregado_analise = True
 
-            if not df_temp_evolucao.empty:
-                df_temp_evolucao['MES_ANO_ABERTURA'] = df_temp_evolucao['DT_ABERTURA_RAW'].dt.to_period('M')
-                chamados_por_mes = df_temp_evolucao.groupby('MES_ANO_ABERTURA').size().reset_index(name='CONTAGEM').sort_values(by='MES_ANO_ABERTURA')
-                chamados_por_mes['MES_ANO_ABERTURA'] = chamados_por_mes['MES_ANO_ABERTURA'].astype(str)
-                
-                if not chamados_por_mes.empty:
-                    fig_evolucao_mensal = px.line(chamados_por_mes, x='MES_ANO_ABERTURA', y='CONTAGEM', title='Evolução Mensal de Chamados Abertos', markers=True, labels={'MES_ANO_ABERTURA': 'Mês/Ano da Abertura', 'CONTAGEM': 'Nº de Chamados'})
-                    fig_evolucao_mensal.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=450)
-                    fig_evolucao_mensal.update_xaxes(tickangle=-45, type='category')
-                    evolucao_mensal_graph_html = fig_evolucao_mensal.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_analise)
+        # --- NOVO GRÁFICO: Evolução Mensal por Tipo de Chamado ---
+        if 'DT_ABERTURA_RAW' in chamados_filtrados_df.columns and 'TIPOCHAMADO' in chamados_filtrados_df.columns:
+            df_evol_tipo = chamados_filtrados_df.copy()
+            # Garantir que a coluna de data seja do tipo datetime
+            df_evol_tipo['DT_ABERTURA_RAW'] = pd.to_datetime(df_evol_tipo['DT_ABERTURA_RAW'], errors='coerce')
+            # Remover linhas onde a data ou o tipo de chamado não puderam ser processados
+            df_evol_tipo.dropna(subset=['DT_ABERTURA_RAW', 'TIPOCHAMADO'], inplace=True)
+
+            if not df_evol_tipo.empty:
+                df_evol_tipo['MES_ANO_ABERTURA'] = df_evol_tipo['DT_ABERTURA_RAW'].dt.to_period('M')
+                # Agrupar por Mês/Ano E por Tipo de Chamado
+                chamados_por_mes_tipo = df_evol_tipo.groupby(['MES_ANO_ABERTURA', 'TIPOCHAMADO']).size().reset_index(name='CONTAGEM')
+                # Ordenar para o gráfico de linha
+                chamados_por_mes_tipo.sort_values(by=['MES_ANO_ABERTURA', 'TIPOCHAMADO'], inplace=True)
+                # Converter Mês/Ano para string para o Plotly
+                chamados_por_mes_tipo['MES_ANO_ABERTURA'] = chamados_por_mes_tipo['MES_ANO_ABERTURA'].astype(str)
+
+                if not chamados_por_mes_tipo.empty:
+                    fig_evolucao_tipo = px.line(
+                        chamados_por_mes_tipo,
+                        x='MES_ANO_ABERTURA',
+                        y='CONTAGEM',
+                        color='TIPOCHAMADO', # Cria uma linha para cada tipo de chamado
+                        title='Evolução Mensal de Chamados por Tipo',
+                        markers=True,
+                        labels={'MES_ANO_ABERTURA': 'Mês/Ano', 'CONTAGEM': 'Nº de Chamados', 'TIPOCHAMADO': 'Tipo de Chamado'}
+                    )
+                    fig_evolucao_tipo.update_layout(margin=dict(l=20, r=20, t=50, b=20), height=450)
+                    fig_evolucao_tipo.update_xaxes(tickangle=-45, type='category')
+                    evolucao_tipo_graph_html = fig_evolucao_tipo.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_analise)
+                    # if not primeiro_grafico_js_carregado_analise: primeiro_grafico_js_carregado_analise = True # Não é mais necessário, pois é o último
+
 
     return render_template('analise_detalhada.html',
+                           # ... (variáveis existentes para filtros, paginação, etc.) ...
                            chamados=chamados_pagina_df,
                            data_inicio=data_inicio_str, data_fim=data_fim_str,
                            servicos=lista_servicos_df.to_dict(orient='records'),
@@ -223,11 +268,13 @@ def analise_detalhada():
                            status_chamado_selecionado=status_chamado_selecionado,
                            total_chamados=total_chamados_final,
                            page=page, total_pages=total_pages, items_per_page=ITEMS_PER_PAGE,
+                           # Gráficos
                            grupo_graph_html=grupo_graph_html,
                            unidade_graph_html=unidade_graph_html,
                            servico_graph_html=servico_graph_html,
                            tipo_chamado_graph_html=tipo_chamado_graph_html,
-                           evolucao_mensal_graph_html=evolucao_mensal_graph_html,
+                           evolucao_mensal_geral_graph_html=evolucao_mensal_geral_graph_html, # Nome atualizado
+                           evolucao_tipo_graph_html=evolucao_tipo_graph_html, # Novo gráfico
                            endpoint='analise_detalhada'
                            )
 

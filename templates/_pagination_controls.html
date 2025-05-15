@@ -1,37 +1,61 @@
-{# templates/_pagination_controls.html #}
+{# templates/_pagination_controls.html - LÓGICA REFINADA PARA PAGINAÇÃO #}
 {% if total_pages > 1 %}
 <div class="pagination">
-    <a href="{{ url_for(endpoint, page=1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
+    {# Botão Primeira #}
+    <a href="{{ url_for(endpoint, page=1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == 1 else '' }}">Primeira</a>
 
-    <a href="{{ url_for(endpoint, page=page-1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
+    {# Botão Anterior #}
+    <a href="{{ url_for(endpoint, page=page-1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == 1 else '' }}">Anterior</a>
 
-    {% set link_window = 2 %}
-    {% set show_first_ellipsis = false %}
-    {% set show_last_ellipsis = false %}
-    {% for p_num in range(1, total_pages + 1) %}
-        {% if p_num == 1 or p_num == total_pages or (p_num >= page - link_window and p_num <= page + link_window) %}
-            {% if p_num == page %}
-                <span class="pagination-item current-page">{{ p_num }}</span>
-            {% else %}
-                <a href="{{ url_for(endpoint, page=p_num, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}" class="pagination-item">{{ p_num }}</a>
-            {% endif %}
-            {% if p_num == 1 and p_num < page - link_window -1 %} {% set show_first_ellipsis = false %} {% endif %}
-            {% if p_num == total_pages and p_num > page + link_window + 1 %} {% set show_last_ellipsis = false %} {% endif %}
-        {% elif p_num < page - link_window and not show_first_ellipsis %}
-            <span class="pagination-item ellipsis">...</span>
-            {% set show_first_ellipsis = true %}
-        {% elif p_num > page + link_window and not show_last_ellipsis %}
-            <span class="pagination-item ellipsis">...</span>
-            {% set show_last_ellipsis = true %}
-        {% endif %}
-    {% endfor %}
+    {# Link para a Página 1 #}
+    {% if page == 1 %}
+        <span class="pagination-item current-page">1</span>
+    {% else %}
+        <a href="{{ url_for(endpoint, page=1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}" class="pagination-item">1</a>
+    {% endif %}
 
-    <a href="{{ url_for(endpoint, page=page+1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
+    {# Reticências Iniciais (se necessário) #}
+    {% if page > 3 %}  {# Se a página atual for maior que 3, há um salto da página 1 para page-1 (se page-1 > 1) #}
+        <span class="pagination-item ellipsis">...</span>
+    {% endif %}
+
+    {# Página ANTES da atual (page - 1) - Só mostra se for diferente de 1 e se for menor que page #}
+    {% if page - 1 > 1 and page - 1 < total_pages %}
+        <a href="{{ url_for(endpoint, page=page-1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}" class="pagination-item">{{ page - 1 }}</a>
+    {% endif %}
+
+    {# Página ATUAL - Só mostra se não for a primeira nem a última #}
+    {% if page != 1 and page != total_pages %}
+        <span class="pagination-item current-page">{{ page }}</span>
+    {% endif %}
+
+    {# Página DEPOIS da atual (page + 1) - Só mostra se for diferente da última e se for maior que page #}
+    {% if page + 1 < total_pages and page + 1 > 1 %}
+         <a href="{{ url_for(endpoint, page=page+1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}" class="pagination-item">{{ page + 1 }}</a>
+    {% endif %}
+
+    {# Reticências Finais (se necessário) #}
+    {% if page < total_pages - 2 %} {# Se a página atual for menor que (total_pages - 2), há um salto para a última página #}
+        <span class="pagination-item ellipsis">...</span>
+    {% endif %}
+
+    {# Link para a Última Página (se não for a página 1) #}
+    {% if total_pages > 1 %}
+        {% if page == total_pages %}
+            <span class="pagination-item current-page">{{ total_pages }}</span>
+        {% else %}
+            <a href="{{ url_for(endpoint, page=total_pages, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}" class="pagination-item">{{ total_pages }}</a>
+        {% endif %}
+    {% endif %}
+
+    {# Botão Próxima #}
+    <a href="{{ url_for(endpoint, page=page+1, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == total_pages else '' }}">Próxima</a>
 
-    <a href="{{ url_for(endpoint, page=total_pages, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '') }}"
+    {# Botão Última #}
+    <a href="{{ url_for(endpoint, page=total_pages, data_inicio=data_inicio, data_fim=data_fim, servico=servico_selecionado if servico_selecionado is defined else '', tipo_chamado=tipo_chamado_selecionado if tipo_chamado_selecionado is defined else '', grupo_solucao=grupo_solucao_selecionado if grupo_solucao_selecionado is defined else '', unidade=unidade_selecionada if unidade_selecionada is defined else '', status_chamado=status_chamado_selecionado if status_chamado_selecionado is defined else '') }}"
        class="pagination-item {{ 'disabled' if page == total_pages else '' }}">Última</a>
 </div>
 {% endif %}
