@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="900"> 
+    <title>Monitoramento Oracle - {{ servico_foco }}</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #1e1e1e; 
+            color: #f0f0f0; 
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        .header-tv {
+            background-color: #0d0d0d; 
+            color: white; 
+            padding: 8px 15px;
+            text-align: center; 
+            font-size: 1.4em;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.7);
+            position: sticky; top: 0; z-index: 1000;
+        }
+        .header-tv .title { display: block; font-weight: 600; }
+        .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
+
+        .tv-main-container { 
+            padding: 15px; 
+            display: grid;
+            grid-template-columns: 1fr; 
+            gap: 20px;
+        }
+
+        .dashboard-section {
+            padding: 12px;
+            background-color: #2a2a2a;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        .dashboard-section h2 {
+            color: #00bfa5; 
+            text-align: center; 
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #404040;
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+        
+        .kpi-pizza-group { /* Para 3 KPIs + 1 Pizza */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Ajuste minmax */
+            gap: 15px;
+            align-items: stretch; 
+            margin-bottom: 15px; /* Espaço abaixo do grupo antes da próxima pizza ou gráfico */
+        }
+        
+        .kpi-group { /* Para linhas de KPIs numéricos */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px; 
+        }
+        
+        .chart-row-single { /* Para um gráfico que ocupa a largura */
+             margin-top: 15px;
+        }
+
+
+        .kpi-card, .chart-card-pizza, .chart-card-bar-single {
+            background-color: #363636;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.3);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 90px; 
+        }
+        .kpi-card .value {
+            font-size: 2.2em; 
+            font-weight: bold;
+            color: #00bfa5;
+            margin-bottom: 3px;
+        }
+        .kpi-card .label {
+            font-size: 0.85em; 
+            color: #b0b0b0; 
+            line-height: 1.2;
+        }
+
+        .chart-card-pizza { 
+             min-height: 290px; /* Para acomodar a pizza de 280px + padding */
+             padding: 5px;
+        }
+        .chart-card-bar-single { /* Para gráficos de barra que ocupam a linha */
+            min-height: 380px; 
+        }
+    </style>
+</head>
+<body>
+    <div class="header-tv">
+        <span class="title">Monitoramento Oracle: {{ servico_foco }} (Incidentes do Mês Atual)</span>
+        <span class="subtitle">Última Atualização: {{ data_atualizacao }}</span>
+    </div>
+
+    <div class="tv-main-container">
+        <section class="dashboard-section">
+            <h2>Geral Incidentes Oracle</h2>
+            <div class="kpi-pizza-group">
+                <div class="kpi-card">
+                    <div class="value">{{ total_incidentes_oracle_mes }}</div>
+                    <div class="label">Total Criados</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value">{{ fechados_incidentes_oracle_mes }}</div>
+                    <div class="label">Fechados</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value">{{ abertos_incidentes_oracle_mes }}</div>
+                    <div class="label">Em Aberto</div>
+                </div>
+                {% if pizza_geral_oracle_status_html %}
+                    <div class="chart-card-pizza">
+                        {{ pizza_geral_oracle_status_html|safe }}
+                    </div>
+                {% else %}
+                    <div class="kpi-card"><div class="label">Pizza Status Geral Indisponível</div></div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>Grupo: Sustentação - SEVEN</h2>
+            <div class="kpi-pizza-group">
+                <div class="kpi-card">
+                    <div class="value">{{ total_incidentes_sust_seven_mes }}</div>
+                    <div class="label">Total Criados no Grupo</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value">{{ fechados_incidentes_sust_seven_mes }}</div>
+                    <div class="label">Fechados no Grupo</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value">{{ abertos_incidentes_sust_seven_mes }}</div>
+                    <div class="label">Em Aberto no Grupo</div>
+                </div>
+                {% if pizza_sust_seven_status_html %}
+                    <div class="chart-card-pizza">
+                        {{ pizza_sust_seven_status_html|safe }}
+                    </div>
+                {% else %}
+                     <div class="kpi-card"><div class="label">Pizza Status Sust. SEVEN Indisponível</div></div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="dashboard-section">
+            <h2>Indicadores de Incidentes Abertos (Oracle - Mês Atual)</h2>
+            <div class="kpi-group"> {# KPIs de abertos em linha #}
+                <div class="kpi-card">
+                    <div class="value">{{ abertos_incidentes_aguardando_aval_mes }}</div>
+                    <div class="label">Abertos: 'Aguardando Avaliação'</div>
+                </div>
+                <div class="kpi-card"> {# NOVO KPI #}
+                    <div class="value">{{ abertos_incidentes_criticos_altos_oracle_mes }}</div>
+                    <div class="label">Abertos Críticos/Altos</div>
+                </div>
+                {# Adicione mais KPIs individuais aqui, eles se ajustarão no grid. #}
+                {# Deixe um kpi-card vazio como placeholder se quiser forçar um número par de colunas #}
+                {# <div class="kpi-card" style="visibility: hidden;"></div> #}
+            </div>
+
+            {% if prioridade_abertos_oracle_graph_html %} {# NOVO GRÁFICO #}
+                <div class="chart-row-single">
+                    <div class="chart-card-bar-single">
+                        {{ prioridade_abertos_oracle_graph_html|safe }}
+                    </div>
+                </div>
+            {% else %}
+                <div class="kpi-card chart-card-bar-single" style="justify-content: center; margin-top:15px;">
+                     <div class="label">Gráfico Abertos por Prioridade Indisponível</div>
+                </div>
+            {% endif %}
+
+            {% if depto_abertos_oracle_graph_html %}
+                <div class="chart-row-single">
+                    <div class="chart-card-bar-single">
+                        {{ depto_abertos_oracle_graph_html|safe }}
+                    </div>
+                </div>
+            {% else %}
+                <div class="kpi-card chart-card-bar-single" style="justify-content: center; margin-top:15px;">
+                     <div class="label">Gráfico Abertos por Depto Indisponível</div>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>
