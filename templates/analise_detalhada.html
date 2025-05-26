@@ -5,44 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise Detalhada de Chamados</title>
     <style>
-        body { font-family: sans-serif; margin: 20px; background-color: #f9f9f9; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
         h1, h2 { color: #333; text-align: center; }
         .container { max-width: 1300px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-        
         nav { background-color: #333; padding: 10px 0; margin-bottom: 20px; text-align: center; border-radius: 4px; }
         nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1.1em; }
         nav a:hover { text-decoration: underline; }
-
         .info { background-color: #f0f8ff; border-left: 5px solid #007bff; padding: 10px; border-radius: 5px; margin-bottom:20px;}
         .filters { background-color: #f1f1f1; padding: 20px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; justify-content: center; }
         .filter-group { display: flex; flex-direction: column; margin-bottom: 10px; }
         .filters label { margin-bottom: 5px; font-weight: bold; }
-        .filters input[type="date"], .filters select, .filters button { 
-            padding: 10px; 
-            border-radius: 4px; 
-            border: 1px solid #ccc; 
-            font-size: 1em;
-            min-width: 180px; 
-        }
+        .filters input[type="date"], .filters select, .filters button { padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 1em; min-width: 180px; }
         .filters button { background-color: #28a745; color: white; cursor: pointer; border: none; min-width: auto; }
         .filters button:hover { background-color: #218838; }
-        
         .btn-export { display: inline-block; padding: 10px 15px; background-color: #17a2b8; color: white !important; text-decoration: none; border-radius: 4px; font-size: 0.9em; border: none; cursor: pointer; }
         .btn-export:hover { background-color: #138496; text-decoration: none; }
         .export-button-container { text-align: right; margin-bottom: 20px; }
-
         .charts-row { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px; margin-bottom: 20px; }
         .chart-container { flex: 1 1 45%; min-width: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        .chart-container-full-width { 
-            flex-basis: 100%; 
-            min-width: 400px; 
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-            margin-top: 20px; /* Adiciona um espaço acima se vier depois de outros gráficos */
-        }
-
+        .chart-container-full-width { flex-basis: 100%; min-width: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); margin-top: 20px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #e9ecef; }
@@ -51,143 +32,45 @@
         .pagination .ellipsis { border: none; color: #333; padding: 8px 6px; }
         .pagination .current-page { background-color: #007bff; color: white; border-color: #007bff; }
         .pagination .disabled { color: #ccc; pointer-events: none; border-color: #eee; }
-
         /* .debug-info { background-color: #fffacd; border: 1px dashed red; padding: 10px; margin: 15px 0; font-family: monospace; font-size: 0.9em; } */
     </style>
 </head>
 <body>
     <div class="container">
         <nav>
-            <a href="{{ url_for('index') }}">Dashboard Principal</a>
+            <a href="{{ url_for('index') }}">Principal</a>
             <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
-            <a href="{{ url_for('dashboard_tv_oracle') }}">Monitoramento Oracle TV</a> {# NOVO LINK #}
+            <a href="{{ url_for('dashboard_tv_oracle') }}">TV Oracle Geral</a>
+            <a href="{{ url_for('dashboard_tv_fornecedores') }}">TV Fornecedores</a>
         </nav>
-
         <h1>Análise Detalhada de Chamados</h1>
-
         <div class="filters">
             <form method="GET" action="{{ url_for('analise_detalhada') }}" style="width:100%; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; justify-content: center;">
-                <div class="filter-group">
-                    <label for="data_inicio">Data Início:</label>
-                    <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
-                </div>
-                <div class="filter-group">
-                    <label for="data_fim">Data Fim:</label>
-                    <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
-                </div>
-                <div class="filter-group">
-                    <label for="servico">Serviço:</label>
-                    <select id="servico" name="servico">
-                        <option value="">Todos</option>
-                        {% for s in servicos %}
-                            <option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>
-                                {{ s.ds_servico }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="tipo_chamado">Tipo de Chamado:</label>
-                    <select id="tipo_chamado" name="tipo_chamado">
-                        <option value="">Todos</option>
-                        {% for tc in tipos_chamado %}
-                            <option value="{{ tc.ds_tipo_chamado }}" {% if tc.ds_tipo_chamado == tipo_chamado_selecionado %}selected{% endif %}>
-                                {{ tc.ds_tipo_chamado }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="grupo_solucao">Grupo de Solução:</label>
-                    <select id="grupo_solucao" name="grupo_solucao">
-                        <option value="">Todos</option>
-                        {% for gs in grupos_solucao %}
-                            <option value="{{ gs.ds_grupo_solucao }}" {% if gs.ds_grupo_solucao == grupo_solucao_selecionado %}selected{% endif %}>
-                                {{ gs.ds_grupo_solucao }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="unidade">Unidade:</label>
-                    <select id="unidade" name="unidade">
-                        <option value="">Todas</option>
-                        {% for u in unidades %}
-                            <option value="{{ u.nm_filial }}" {% if u.nm_filial == unidade_selecionada %}selected{% endif %}>
-                                {{ u.nm_filial }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="status_chamado">Status:</label>
-                    <select id="status_chamado" name="status_chamado">
-                        <option value="">Todos</option>
-                        {% for st in lista_status_chamado %}
-                            <option value="{{ st }}" {% if st == status_chamado_selecionado %}selected{% endif %}>
-                                {{ st }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <button type="submit">Filtrar</button>
-                </div>
+                <div class="filter-group"><label for="data_inicio">Data Início:</label><input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}"></div>
+                <div class="filter-group"><label for="data_fim">Data Fim:</label><input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}"></div>
+                <div class="filter-group"><label for="servico">Serviço:</label><select id="servico" name="servico"><option value="">Todos</option>{% for s in servicos %}<option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>{{ s.ds_servico }}</option>{% endfor %}</select></div>
+                <div class="filter-group"><label for="tipo_chamado">Tipo de Chamado:</label><select id="tipo_chamado" name="tipo_chamado"><option value="">Todos</option>{% for tc in tipos_chamado %}<option value="{{ tc.ds_tipo_chamado }}" {% if tc.ds_tipo_chamado == tipo_chamado_selecionado %}selected{% endif %}>{{ tc.ds_tipo_chamado }}</option>{% endfor %}</select></div>
+                <div class="filter-group"><label for="grupo_solucao">Grupo de Solução:</label><select id="grupo_solucao" name="grupo_solucao"><option value="">Todos</option>{% for gs in grupos_solucao %}<option value="{{ gs.ds_grupo_solucao }}" {% if gs.ds_grupo_solucao == grupo_solucao_selecionado %}selected{% endif %}>{{ gs.ds_grupo_solucao }}</option>{% endfor %}</select></div>
+                <div class="filter-group"><label for="unidade">Unidade:</label><select id="unidade" name="unidade"><option value="">Todas</option>{% for u in unidades %}<option value="{{ u.nm_filial }}" {% if u.nm_filial == unidade_selecionada %}selected{% endif %}>{{ u.nm_filial }}</option>{% endfor %}</select></div>
+                <div class="filter-group"><label for="status_chamado">Status:</label><select id="status_chamado" name="status_chamado"><option value="">Todos</option>{% for st_nome in lista_status_chamado %}<option value="{{ st_nome }}" {% if st_nome == status_chamado_selecionado %}selected{% endif %}>{{ st_nome }}</option>{% endfor %}</select></div>
+                <div class="filter-group"><button type="submit">Filtrar</button></div>
             </form>
         </div>
-
-        <div class="export-button-container">
-            {% include '_export_button.html' %}
-        </div>
-        
-        {# Os prints de depuração foram comentados
-        <div class="debug-info">
-            ...
-        </div>
-        #}
-
+        <div class="export-button-container">{% include '_export_button.html' %}</div>
+        {# <div class="debug-info"> ... </div> #}
         <div class="charts-row">
-            {% if grupo_graph_html %}
-                <div class="chart-container">
-                    {{ grupo_graph_html|safe }}
-                </div>
-            {% endif %}
-            {% if unidade_graph_html %}
-                <div class="chart-container">
-                    {{ unidade_graph_html|safe }}
-                </div>
-            {% endif %}
-            {% if servico_graph_html %}
-                <div class="chart-container">
-                    {{ servico_graph_html|safe }}
-                </div>
-            {% endif %}
-            {% if tipo_chamado_graph_html %}
-                <div class="chart-container">
-                    {{ tipo_chamado_graph_html|safe }}
-                </div>
-            {% endif %}
-        </div> {# Fim da primeira linha de charts-row #}
-
-        {# Nova linha para o gráfico de evolução mensal geral e por tipo #}
+            {% if grupo_graph_html %}<div class="chart-container">{{ grupo_graph_html|safe }}</div>{% endif %}
+            {% if unidade_graph_html %}<div class="chart-container">{{ unidade_graph_html|safe }}</div>{% endif %}
+            {% if servico_graph_html %}<div class="chart-container">{{ servico_graph_html|safe }}</div>{% endif %}
+            {% if tipo_chamado_graph_html %}<div class="chart-container">{{ tipo_chamado_graph_html|safe }}</div>{% endif %}
+        </div>
         <div class="charts-row">
-            {% if evolucao_mensal_geral_graph_html %}
-                <div class="chart-container-full-width"> 
-                    {{ evolucao_mensal_geral_graph_html|safe }}
-                </div>
-            {% endif %}
+             {% if evolucao_mensal_geral_graph_html %}<div class="chart-container-full-width">{{ evolucao_mensal_geral_graph_html|safe }}</div>{% endif %}
         </div>
-        <div class="charts-row"> {# Outra linha para o novo gráfico de evolução por tipo #}
-            {% if evolucao_tipo_graph_html %}
-                <div class="chart-container-full-width"> 
-                    {{ evolucao_tipo_graph_html|safe }}
-                </div>
-            {% endif %}
+        <div class="charts-row">
+            {% if evolucao_tipo_graph_html %}<div class="chart-container-full-width">{{ evolucao_tipo_graph_html|safe }}</div>{% endif %}
         </div>
-
-
         {% include '_pagination_controls.html' %}
-
         <div class="info">
             <p>Período: <strong>{{ data_inicio }}</strong> a <strong>{{ data_fim }}</strong>.</p>
             {% if servico_selecionado %}<p>Serviço: <strong>{{ servico_selecionado }}</strong>.</p>{% endif %}
@@ -195,39 +78,17 @@
             {% if grupo_solucao_selecionado %}<p>Grupo Solução: <strong>{{ grupo_solucao_selecionado }}</strong>.</p>{% endif %}
             {% if unidade_selecionada %}<p>Unidade: <strong>{{ unidade_selecionada }}</strong>.</p>{% endif %}
             {% if status_chamado_selecionado %}<p>Status: <strong>{{ status_chamado_selecionado }}</strong>.</p>{% endif %}
-            <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. 
-               Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
+            <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
         </div>
-
         {% if total_chamados > 0 %}
             <h2>Chamados Filtrados ({{ items_per_page }} por página):</h2>
             <table>
-                <thead>
-                    <tr>
-                        <th>CHAMADO</th>
-                        <th>TITULO</th>
-                        <th>SOLICITANTE</th>
-                        <th>SERVICO</th>
-                        <th>TIPOCHAMADO</th>
-                        <th>GRUPO</th>
-                        <th>UNIDADE</th>
-                        <th>STATUS</th>
-                        <th>DT_ABERTURA</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>CHAMADO</th><th>TITULO</th><th>SOLICITANTE</th><th>SERVICO</th><th>TIPOCHAMADO</th><th>GRUPO</th><th>UNIDADE</th><th>STATUS</th><th>DT_ABERTURA</th></tr></thead>
                 <tbody>
                     {% for index, chamado in chamados.iterrows() %}
-                    <tr>
-                        <td>{{ chamado.CHAMADO }}</td>
-                        <td>{{ chamado.TITULO }}</td>
-                        <td>{{ chamado.SOLICITANTE }}</td>
-                        <td>{{ chamado.SERVICO }}</td>
-                        <td>{{ chamado.TIPOCHAMADO }}</td>
-                        <td>{{ chamado.GRUPO }}</td>
-                        <td>{{ chamado.UNIDADE }}</td>
-                        <td>{{ chamado.STATUS_CHAMADO }}</td>
-                        <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td>
-                    </tr>
+                    <tr><td>{{ chamado.CHAMADO }}</td><td>{{ chamado.TITULO }}</td><td>{{ chamado.SOLICITANTE }}</td><td>{{ chamado.SERVICO }}</td><td>{{ chamado.TIPOCHAMADO }}</td><td>{{ chamado.GRUPO }}</td><td>{{ chamado.UNIDADE }}</td>
+                    <td>{{ chamado.STATUS }}</td>{# ATUALIZADO PARA STATUS #}
+                    <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td></tr>
                     {% endfor %}
                 </tbody>
             </table>
