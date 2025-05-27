@@ -24,22 +24,36 @@ def get_chamados(data_inicio, data_fim, area_id=1):
 
     query = """
         SELECT
-            c.cd_chamado AS CHAMADO, c.tt_chamado AS TITULO,
-            u.nm_usuario AS SOLICITANTE, d.ds_departamento AS DEPARTAMENTO,
-            f.nm_filial AS UNIDADE, s.ds_servico AS SERVICO,
-            te.ds_template_chamado_tema AS TEMA, i.ds_tipo_chamado AS TIPOCHAMADO,
-            t.tt_template_chamado AS TEMPLATE, g.ds_grupo_solucao AS GRUPO,
-            e.ds_categoria AS CATEGORIA, p.ds_prioridade AS PRIORIDADE,
-            a.nm_atendente AS ATENDENTE, c.ds_chamado AS DESCRICAO,
-            p.tempo_solucao_prioridade AS PRAZO_HORAS,
-            c.da_chamado AS DT_ABERTURA_RAW, c.ha_chamado AS HORA_ABERTURA_RAW,
-            c.dt_atendimento_chamado AS DT_ATENDIMENTO_RAW, c.hr_atendimento_chamado AS HORA_ATENDIMENTO_RAW,
-            c.dt_resolucao_chamado AS DT_RESOLUCAO_RAW, c.hr_resolucao_chamado AS HORA_RESOLUCAO_RAW,
-            c.dt_fechamento_chamado AS DT_FECHAMENTO_RAW, c.hr_fechamento_chamado AS HORA_FECHAMENTO_RAW,
-            c.dt_agendamento_chamado AS DT_AGENDAMENTO_RAW,
-            c.sla_atendimento_porcentagem, c.sla_atendimento_tempo_decorrido,
-            c.sla_atendimento_tempo_definido, c.sla_encaminhamento_tempo_decorrido,
-            c.st_chamado AS CD_STATUS, st.ds_status_chamado AS STATUS
+            c.cd_chamado 				AS CHAMADO, 
+            c.tt_chamado 				AS TITULO,
+            u.nm_usuario 				AS SOLICITANTE, 
+            d.ds_departamento 			AS DEPARTAMENTO,
+            f.nm_filial 				AS UNIDADE, 
+            s.ds_servico 				AS SERVICO,
+            te.ds_template_chamado_tema AS TEMA, 
+            i.ds_tipo_chamado 			AS TIPOCHAMADO,
+            t.tt_template_chamado 		AS TEMPLATE, 
+            g.ds_grupo_solucao 			AS GRUPO,
+            e.ds_categoria 				AS CATEGORIA, 
+            p.ds_prioridade 			AS PRIORIDADE,
+            a.nm_atendente 				AS ATENDENTE, 
+            c.ds_chamado 				AS DESCRICAO,
+            p.tempo_solucao_prioridade 	AS PRAZO_HORAS,
+            c.da_chamado 				AS DT_ABERTURA_RAW, 
+            c.ha_chamado 				AS HORA_ABERTURA_RAW,
+            c.dt_atendimento_chamado 	AS DT_ATENDIMENTO_RAW, 
+            c.hr_atendimento_chamado 	AS HORA_ATENDIMENTO_RAW,
+            c.dt_resolucao_chamado 		AS DT_RESOLUCAO_RAW, 
+            c.hr_resolucao_chamado 		AS HORA_RESOLUCAO_RAW,
+            c.dt_fechamento_chamado 	AS DT_FECHAMENTO_RAW, 
+            c.hr_fechamento_chamado 	AS HORA_FECHAMENTO_RAW,
+            c.dt_agendamento_chamado 	AS DT_AGENDAMENTO_RAW,
+            c.sla_atendimento_porcentagem, 
+            c.sla_atendimento_tempo_decorrido,
+            c.sla_atendimento_tempo_definido, 
+            c.sla_encaminhamento_tempo_decorrido,
+            c.st_chamado 				AS CD_STATUS, 
+            st.ds_status_chamado 		AS STATUS
         FROM softdesk.sd_chamado c
         LEFT JOIN softdesk.sd_atendente a           ON c.cd_atendente = a.cd_atendente
         LEFT JOIN softdesk.sd_area r                ON c.cd_area = r.cd_area
@@ -65,17 +79,16 @@ def get_chamados(data_inicio, data_fim, area_id=1):
         for col in date_cols:
             df[col] = pd.to_datetime(df[col], errors='coerce')
         
-        if 'STATUS' not in df.columns and not df.empty: # Apenas se a coluna estiver faltando e houver dados
-            print("ALERTA: Coluna 'STATUS' não encontrada no DataFrame após a query! Verifique a query SQL e os joins.")
-            df['STATUS'] = 'Status Desconhecido' # Fallback para evitar erros
-        elif df.empty and 'STATUS' not in df.columns: # Se o df estiver vazio, adicione a coluna para consistência
+        if 'STATUS' not in df.columns and not df.empty:
+            print("ALERTA DH: Coluna 'STATUS' não encontrada no DataFrame! Verifique a query SQL.")
+            df['STATUS'] = 'Status Desconhecido' 
+        elif df.empty and 'STATUS' not in df.columns: 
             df['STATUS'] = pd.Series(dtype='object')
-
 
         return df
     except mysql.connector.Error as e:
         print(f"Erro ao executar query get_chamados: {e}")
-        return pd.DataFrame(columns=['CHAMADO', 'TITULO', 'STATUS']) # Retorna DataFrame com colunas esperadas
+        return pd.DataFrame(columns=['CHAMADO', 'TITULO', 'STATUS']) 
     except Exception as e:
         print(f"Ocorreu um erro inesperado no Pandas em get_chamados: {e}")
         return pd.DataFrame(columns=['CHAMADO', 'TITULO', 'STATUS'])
