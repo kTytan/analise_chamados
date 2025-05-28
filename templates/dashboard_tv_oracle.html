@@ -6,68 +6,25 @@
     <meta http-equiv="refresh" content="900"> 
     <title>Monitoramento Oracle (Mês Atual)</title>
     <style>
-        /* Seus estilos CSS para TV - pode copiar do dashboard_tv_fornecedores.html e ajustar se necessário */
+        /* SEU CSS ATUALIZADO (como você me enviou) VAI AQUI */
         body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background-color: #1e1e1e; color: #f0f0f0; overflow: hidden; line-height: 1.5;}
-        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); position: sticky; top: 0; z-index: 1000;}
+        html {height: 100%; overflow: hidden;}
+        body {display: flex; flex-direction: column; height: 100%;}
+        .header-tv {background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; z-index: 10; }
         .header-tv .title { display: block; font-weight: 500; }
         .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
-        
-        .tv-main-container { padding: 10px; display: grid; grid-template-columns: 1fr; gap: 20px; height: calc(100vh - 50px); overflow-y: auto; /* Ajuste 50px para altura do header */ }
-
-        .oracle-main-section { /* Similar ao fornecedor-main-section */
-            display: flex;
-            flex-direction: column;
-            gap: 15px; 
-            padding: 12px;
-            background-color: #282828;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-        }
-        .oracle-main-section > h2 { 
-            color: #00e676; 
-            text-align: center;
-            margin-top: 0;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #404040;
-            font-size: 1.5em; 
-        }
-        
-        .kpi-layout-container { /* Usado para 6 KPIs + Pizza */
-            display: grid;
-            grid-template-columns: repeat(3, minmax(130px, 1fr)) minmax(240px, 1.3fr); 
-            grid-template-rows: auto auto; 
-            gap: 10px; 
-            align-items: stretch; 
-        }
-        
-        .kpi-card {
-            background-color: #333333;
-            padding: 10px 5px; 
-            border-radius: 4px;
-            box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2);
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center; 
-            align-items: center;
-            min-height: 85px; 
-            overflow: hidden; 
-        }
-        .kpi-card .value { font-size: 3em; font-weight: 600; color: #00d9b2; margin-bottom: 1px; line-height: 1.1; }
-        .kpi-card .label { font-size: 1.3em; color: #a0a0a0; line-height: 1.1; word-wrap: break-word; }
-
-        .chart-card-pizza-옆 { 
-             background-color: #333333; padding: 5px; border-radius: 4px;
-             box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2);
-             text-align: center; display: flex; flex-direction: column;
-             justify-content: center; align-items: center;
-             grid-column: 4 / 5; grid-row: 1 / 3;    
-             min-height: 180px; 
-        }
-        nav { background-color: #0d0d0d; padding: 10px 0; margin-bottom: 15px; text-align: center; border-radius: 4px; }
+        nav { background-color: #0d0d0d; padding: 10px 0; margin-bottom: 10px; text-align: center; border-radius: 4px; flex-shrink: 0;}
         nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; }
         nav a:hover { text-decoration: underline; }
+        .tv-main-container { padding: 10px; display: grid; grid-template-columns: 1fr; gap: 15px; flex-grow: 1; overflow-y: auto; overflow-x: hidden;}
+        .oracle-section { padding: 10px; background-color: #282828; border-radius: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.5); margin-bottom: 15px; }
+        .oracle-section:last-child { margin-bottom: 0; }
+        .oracle-section > h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #383838; font-size: 1.5em; }
+        .kpi-layout-container { display: grid; grid-template-columns: repeat(3, minmax(120px, 1fr)) minmax(220px, 1.2fr); grid-template-rows: auto auto auto; gap: 8px; align-items: stretch; }
+        .kpi-card { background-color: #333333; padding: 8px 5px; border-radius: 4px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 75px; overflow: hidden; box-sizing: border-box;}
+        .kpi-card .value { font-size: 2.8em; font-weight: 600; color: #00d9b2; margin-bottom: 2px; line-height: 1; }
+        .kpi-card .label { font-size: 1.1em; color: #a0a0a0; line-height: 1.1; word-wrap: break-word; margin-top:2px;}
+        .chart-card-pizza-oracle { background-color: #333333; padding: 5px; border-radius: 4px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; grid-column: 4 / 5; grid-row: 1 / 4; min-height: 241px; box-sizing: border-box;}
     </style>
 </head>
 <body>
@@ -83,49 +40,62 @@
     </nav>
 
     <div class="tv-main-container">
-        <section class="oracle-main-section">
+        <section class="oracle-section">
             <h2>Incidentes Oracle</h2>
             <div class="kpi-layout-container">
                 <div class="kpi-card">
-                    <div class="value">{{ dados_incidentes_oracle.total_criados | default(0) }}</div>
+                    <div class="value">{{ kpi_total_incidentes_criados | default(0) }}</div>
                     <div class="label">Total Criados</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="value">{{ dados_incidentes_oracle.em_atendimento | default(0) }}</div>
+                    <div class="value">{{ kpi_incidentes_em_atendimento | default(0) }}</div>
                     <div class="label">Em Atendimento</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="value">{{ dados_incidentes_oracle.fechados | default(0) }}</div>
-                    <div class="label">Fechados</div>
+                    <div class="value">{{ kpi_incidentes_aguard_solic | default(0) }}</div>
+                    <div class="label">Aguard. Solicitante</div>
                 </div>
                 
-                {% if dados_incidentes_oracle.pizza_html %}
-                    <div class="chart-card-pizza-옆">
-                        {{ dados_incidentes_oracle.pizza_html|safe }}
+                {% if pizza_incidentes_oracle_status_html %}
+                    <div class="chart-card-pizza-oracle">
+                        {{ pizza_incidentes_oracle_status_html|safe }}
                     </div>
                 {% else %}
-                    <div class="kpi-card chart-card-pizza-옆"><div class="label">Pizza Status Indisponível</div></div>
+                    <div class="kpi-card chart-card-pizza-oracle"><div class="label">Pizza Status Indisponível</div></div>
                 {% endif %}
 
                 <div class="kpi-card">
-                    <div class="value">{{ dados_incidentes_oracle.aguardando_solicitante | default(0) }}</div>
-                    <div class="label">Aguard. Solicitante</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="value">{{ dados_incidentes_oracle.contestado | default(0) }}</div>
-                    <div class="label">Contestado</div>
+                    <div class="value">{{ kpi_incidentes_fechados | default(0) }}</div>
+                    <div class="label">Fechados</div>
                 </div>
                 <div class="kpi-card"> 
-                    <div class="value">{{ kpi_incidentes_aguardando_aval | default(0) }}</div>
+                    <div class="value">{{ kpi_incidentes_aguard_aval_grupo | default(0) }}</div>
                     <div class="label">Aguard. Avaliação (Grupo)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value">{{ kpi_incidentes_contestados | default(0) }}</div>
+                    <div class="label">Contestado</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="value">{{ kpi_incidentes_abertos_sem_atendente | default(0) }}</div>
+                    <div class="label">Abertos Sem Atendente</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value">{{ kpi_incidentes_aging_medio_ativos_str | default("N/A") }}</div>
+                    <div class="label">Aging Médio Ativos</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value">{{ kpi_incidentes_tempo_medio_atend_fechados_str | default("N/A") }}</div>
+                    <div class="label">T. Médio Atend. (Fechados)</div>
                 </div>
             </div>
         </section>
 
-        <section class="oracle-main-section">
+        <section class="oracle-section">
             <h2>Outros Chamados Oracle (Não Incidentes)</h2>
-            <div class="kpi-layout-container">
-                <div class="kpi-card">
+            <div class="kpi-layout-container"> {# Usando o mesmo layout para consistência #}
+                 <div class="kpi-card">
                     <div class="value">{{ dados_nao_incidentes_oracle.total_criados | default(0) }}</div>
                     <div class="label">Total Criados</div>
                 </div>
@@ -134,30 +104,36 @@
                     <div class="label">Em Atendimento</div>
                 </div>
                 <div class="kpi-card">
-                    <div class="value">{{ dados_nao_incidentes_oracle.fechados | default(0) }}</div>
-                    <div class="label">Fechados</div>
-                </div>
-
-                {% if dados_nao_incidentes_oracle.pizza_html %}
-                    <div class="chart-card-pizza-옆">
-                        {{ dados_nao_incidentes_oracle.pizza_html|safe }}
-                    </div>
-                {% else %}
-                    <div class="kpi-card chart-card-pizza-옆"><div class="label">Pizza Status Indisponível</div></div>
-                {% endif %}
-
-                <div class="kpi-card">
                     <div class="value">{{ dados_nao_incidentes_oracle.aguardando_solicitante | default(0) }}</div>
                     <div class="label">Aguard. Solicitante</div>
                 </div>
+
+                {% if pizza_nao_incidentes_oracle_status_html %}
+                    <div class="chart-card-pizza-oracle">
+                        {{ pizza_nao_incidentes_oracle_status_html|safe }}
+                    </div>
+                {% else %}
+                    <div class="kpi-card chart-card-pizza-oracle"><div class="label">Pizza Status Indisponível</div></div>
+                {% endif %}
+                
                 <div class="kpi-card">
+                    <div class="value">{{ dados_nao_incidentes_oracle.fechados | default(0) }}</div> {# Adicionado KPI Fechados #}
+                    <div class="label">Fechados</div>
+                </div>
+                <div class="kpi-card"> 
+                    <div class="value">{{ kpi_nao_incidentes_aguardando_aval | default(0) }}</div> {# KPI específico #}
+                    <div class="label">Aguard. Avaliação (Grupo)</div>
+                </div>
+                 <div class="kpi-card">
                     <div class="value">{{ dados_nao_incidentes_oracle.contestado | default(0) }}</div>
                     <div class="label">Contestado</div>
                 </div>
-                <div class="kpi-card"> 
-                    <div class="value">{{ kpi_nao_incidentes_aguardando_aval | default(0) }}</div>
-                    <div class="label">Aguard. Avaliação (Grupo)</div>
-                </div>
+                
+                {# KPIs de SLA e Aging não são retornados por gerar_kpis_e_pizza, #}
+                {# então deixaremos placeholders ou você pode calcular e passá-los para 'dados_nao_incidentes_oracle' #}
+                <div class="kpi-card"><div class="value">-</div><div class="label">Sem Atendente</div></div>
+                <div class="kpi-card"><div class="value">N/A</div><div class="label">Aging Médio</div></div>
+                <div class="kpi-card"><div class="value">N/A</div><div class="label">T. Médio Atend.</div></div>
             </div>
         </section>
     </div>

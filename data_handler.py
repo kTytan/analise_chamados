@@ -53,7 +53,8 @@ def get_chamados(data_inicio, data_fim, area_id=1):
             c.sla_atendimento_tempo_definido, 
             c.sla_encaminhamento_tempo_decorrido,
             c.st_chamado 				AS CD_STATUS, 
-            st.ds_status_chamado 		AS STATUS
+            st.ds_status_chamado 		AS STATUS,
+            c.sla_resolucao_tempo_decorrido AS TEMPO_RESOLUCAO_DECORRIDO
         FROM softdesk.sd_chamado c
         LEFT JOIN softdesk.sd_atendente a           ON c.cd_atendente = a.cd_atendente
         LEFT JOIN softdesk.sd_area r                ON c.cd_area = r.cd_area
