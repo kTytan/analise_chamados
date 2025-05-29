@@ -155,6 +155,7 @@ def analise_detalhada():
 # --- ROTA DASHBOARD TV ORACLE ---
 @app.route('/dashboard_tv_oracle')
 def dashboard_tv_oracle():
+    # ... (início da função, busca de dados, como no seu último app.py) ...
     print("--- ROTA /dashboard_tv_oracle: INÍCIO (Mês Atual - Incidentes vs Não Incidentes) ---")
     servico_filtro_oracle = SERVICO_ORACLE
     hoje = date.today() 
@@ -167,35 +168,28 @@ def dashboard_tv_oracle():
     todos_chamados_mes_atual_df = get_chamados(data_inicio=data_inicio_str,data_fim=data_fim_str,area_id=1)
     print(f"1. TV Oracle - Total chamados (todos os tipos) mês: {len(todos_chamados_mes_atual_df)}")
 
-    # Para Incidentes
     kpi_total_incidentes_criados = 0; kpi_incidentes_fechados = 0; kpi_incidentes_em_atendimento = 0
     kpi_incidentes_aguard_solic = 0; kpi_incidentes_contestados = 0
     kpi_incidentes_aguard_aval_grupo = 0; kpi_incidentes_aging_medio_ativos_str = "N/A"
-    kpi_incidentes_abertos_sem_atendente = 0; kpi_incidentes_tempo_medio_atend_fechados_str = "N/A"
+    kpi_incidentes_abertos_sem_atendente = 0; 
+    kpi_incidentes_tempo_medio_atend_fechados_str = "N/A" # Nome mantido conforme template
     pizza_incidentes_oracle_status_html = None
     
-    # Para Não Incidentes (Outros Chamados)
-    # Renomeando para _kpis para evitar conflito de nome com o que passamos ao template
-    dados_nao_incidentes_oracle_kpis_dict = { 
-        'total_criados': 0, 'em_atendimento': 0, 'fechados': 0, 
-        'aguardando_solicitante': 0, 'contestado': 0,
-        'pizza_html': None # A função calcular_dados_tv_fornecedores não retorna 'sla_estourado' ou 'abertos_7_dias_mais'
-                          # então não precisamos inicializá-los aqui se não vamos usar.
-    }
-    kpi_nao_incidentes_aguard_aval_grupo = 0
+    kpi_total_nao_incidentes_criados = 0; kpi_nao_incidentes_fechados = 0; kpi_nao_incidentes_em_atendimento = 0
+    kpi_nao_incidentes_aguard_solic = 0; kpi_nao_incidentes_contestados = 0
+    kpi_nao_incidentes_aguard_aval_grupo = 0; kpi_nao_incidentes_aging_medio_ativos_str = "N/A"
+    kpi_nao_incidentes_abertos_sem_atendente = 0; 
+    kpi_nao_incidentes_tempo_medio_atend_str = "N/A" # Nome mantido conforme template
+    pizza_nao_incidentes_oracle_status_html = None
     
     primeiro_grafico_js_carregado_tv_oracle = False
 
     if not todos_chamados_mes_atual_df.empty:
-        oracle_df_mes_atual = todos_chamados_mes_atual_df[
-            todos_chamados_mes_atual_df['SERVICO'] == servico_filtro_oracle
-        ].copy()
+        oracle_df_mes_atual = todos_chamados_mes_atual_df[todos_chamados_mes_atual_df['SERVICO'] == servico_filtro_oracle].copy()
         print(f"2. TV Oracle - Chamados Oracle (todos os tipos) mês: {len(oracle_df_mes_atual)}")
 
-        # Colunas base necessárias
         cols_base_necessarias = ['TIPOCHAMADO', 'STATUS', 'GRUPO', 'DT_ABERTURA_RAW', 'HORA_ABERTURA_RAW', 'ATENDENTE']
-        # Coluna para tempo de atendimento/resolução
-        coluna_tempo_usada_para_media = 'TEMPO_RESOLUCAO_DECORRIDO' # Use o alias EXATO da sua query em data_handler.py
+        coluna_tempo_usada_para_media = 'TEMPO_RESOLUCAO_DECORRIDO' # Alias para c.sla_resolucao_tempo_decorrido
 
         if not oracle_df_mes_atual.empty and \
            all(col in oracle_df_mes_atual.columns for col in cols_base_necessarias) and \
@@ -204,73 +198,111 @@ def dashboard_tv_oracle():
             # --- Bloco de INCIDENTES ORACLE ---
             oracle_incidentes_df = oracle_df_mes_atual[oracle_df_mes_atual['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE].copy()
             print(f"  Incidentes Oracle (mês): {len(oracle_incidentes_df)}")
-
             if not oracle_incidentes_df.empty:
-                # (Lógica completa para calcular todos os 9 KPIs de incidentes e a pizza_incidentes_oracle_status_html
-                #  como na sua última versão funcional desta parte)
+                # ... (cálculo dos 5 KPIs básicos de contagem para incidentes) ...
                 kpi_total_incidentes_criados = len(oracle_incidentes_df)
                 kpi_incidentes_fechados = len(oracle_incidentes_df[oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)])
                 kpi_incidentes_em_atendimento = len(oracle_incidentes_df[oracle_incidentes_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)])
                 kpi_incidentes_aguard_solic = len(oracle_incidentes_df[oracle_incidentes_df['STATUS'] == STATUS_AGUARDANDO_SOLICITANTE])
                 kpi_incidentes_contestados = len(oracle_incidentes_df[oracle_incidentes_df['STATUS'] == STATUS_CONTESTADO])
+                
                 incidentes_ativos_df = oracle_incidentes_df[~oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA) & (oracle_incidentes_df['STATUS'] != STATUS_REPROVADO)].copy()
                 if not incidentes_ativos_df.empty:
-                    df_inc_aguard_aval = incidentes_ativos_df[(incidentes_ativos_df['GRUPO'] == GRUPO_AGUARDANDO_AVALIACAO) & (incidentes_ativos_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA + [STATUS_AGUARDANDO_SOLICITANTE, STATUS_AGUARDANDO_APROVACAO, STATUS_CONTESTADO]))]
-                    kpi_incidentes_aguard_aval_grupo = len(df_inc_aguard_aval)
-                    temp_aging_inc = incidentes_ativos_df.copy()
-                    try:
-                        temp_aging_inc.loc[:, 'HORA_ABERTURA_TD_TEMP'] = pd.to_timedelta(temp_aging_inc['HORA_ABERTURA_RAW'].astype(str), errors='coerce')
-                        temp_aging_inc.loc[:, 'TIMESTAMP_ABERTURA'] = pd.to_datetime(temp_aging_inc['DT_ABERTURA_RAW']) + temp_aging_inc['HORA_ABERTURA_TD_TEMP']
-                        temp_aging_inc.dropna(subset=['TIMESTAMP_ABERTURA'], inplace=True)
-                        if not temp_aging_inc.empty: agora = datetime.now(); temp_aging_inc.loc[:, 'IDADE_CHAMADO_TD'] = agora - temp_aging_inc['TIMESTAMP_ABERTURA']; media_idade_td = temp_aging_inc['IDADE_CHAMADO_TD'].mean()
-                        if pd.notna(media_idade_td): dias = media_idade_td.days; horas = media_idade_td.seconds // 3600; kpi_incidentes_aging_medio_ativos_str = f"{dias}d {horas}h"
-                    except Exception as e: kpi_incidentes_aging_medio_ativos_str = "Erro"; print(f"Erro Aging Inc: {e}")
+                    # ... (cálculo de kpi_incidentes_aguard_aval_grupo, kpi_incidentes_aging_medio_ativos_str, kpi_incidentes_abertos_sem_atendente) ...
+                    df_inc_aguard_aval = incidentes_ativos_df[(incidentes_ativos_df['GRUPO'] == GRUPO_AGUARDANDO_AVALIACAO) & (incidentes_ativos_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA + [STATUS_AGUARDANDO_SOLICITANTE, STATUS_AGUARDANDO_APROVACAO, STATUS_CONTESTADO]))]; kpi_incidentes_aguard_aval_grupo = len(df_inc_aguard_aval)
+                    temp_aging_inc = incidentes_ativos_df.copy(); temp_aging_inc.loc[:, 'HORA_ABERTURA_TD_TEMP'] = pd.to_timedelta(temp_aging_inc['HORA_ABERTURA_RAW'].astype(str), errors='coerce'); temp_aging_inc.loc[:, 'TIMESTAMP_ABERTURA'] = pd.to_datetime(temp_aging_inc['DT_ABERTURA_RAW']) + temp_aging_inc['HORA_ABERTURA_TD_TEMP']; temp_aging_inc.dropna(subset=['TIMESTAMP_ABERTURA'], inplace=True)
+                    if not temp_aging_inc.empty: agora_inc = datetime.now(); temp_aging_inc.loc[:, 'IDADE_CHAMADO_TD'] = agora_inc - temp_aging_inc['TIMESTAMP_ABERTURA']; media_idade_td_inc = temp_aging_inc['IDADE_CHAMADO_TD'].mean()
+                    if pd.notna(media_idade_td_inc): dias_inc = media_idade_td_inc.days; horas_inc = media_idade_td_inc.seconds // 3600; kpi_incidentes_aging_medio_ativos_str = f"{dias_inc}d {horas_inc}h"
+                    else: kpi_incidentes_aging_medio_ativos_str = "N/A"
                     kpi_incidentes_abertos_sem_atendente = len(incidentes_ativos_df[incidentes_ativos_df['ATENDENTE'].isna() | (incidentes_ativos_df['ATENDENTE'] == '')])
-                incidentes_fechados_com_tempo_df = oracle_incidentes_df[(oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)) & (oracle_incidentes_df[coluna_tempo_usada_para_media].notna())].copy()
+
+                # Tempo Médio de Atendimento/Resolução para Incidentes FECHADOS no mês (HH:MM)
+                incidentes_fechados_com_tempo_df = oracle_incidentes_df[
+                    (oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)) & 
+                    (oracle_incidentes_df[coluna_tempo_usada_para_media].notna())
+                ].copy()
                 if not incidentes_fechados_com_tempo_df.empty:
-                    incidentes_fechados_com_tempo_df.loc[:, 'TEMPO_RESOL_NUM'] = pd.to_numeric(incidentes_fechados_com_tempo_df[coluna_tempo_usada_para_media], errors='coerce')
+                    incidentes_fechados_com_tempo_df.loc[:, 'TEMPO_RESOL_NUM'] = pd.to_numeric(
+                        incidentes_fechados_com_tempo_df[coluna_tempo_usada_para_media], errors='coerce'
+                    )
                     incidentes_fechados_com_tempo_df.dropna(subset=['TEMPO_RESOL_NUM'], inplace=True)
                     if not incidentes_fechados_com_tempo_df.empty:
-                        media_tempo_original = incidentes_fechados_com_tempo_df['TEMPO_RESOL_NUM'].mean() 
-                        if pd.notna(media_tempo_original): media_tempo_minutos = media_tempo_original; kpi_incidentes_tempo_medio_atend_fechados_str = f"{media_tempo_minutos:.0f} min"
+                        media_tempo_resol_original = incidentes_fechados_com_tempo_df['TEMPO_RESOL_NUM'].mean() 
+                        if pd.notna(media_tempo_resol_original):
+                            # --- LÓGICA DE FORMATAÇÃO PARA HH:MM ---
+                            # ASSUMINDO que media_tempo_resol_original está em MINUTOS
+                            total_minutos_int = int(round(media_tempo_resol_original))
+                            horas = total_minutos_int // 60
+                            minutos = total_minutos_int % 60
+                            kpi_incidentes_tempo_medio_atend_fechados_str = f"{horas:02d}:{minutos:02d}h"
+                            # Se a unidade original for SEGUNDOS:
+                            # total_segundos_int = int(round(media_tempo_resol_original))
+                            # horas = total_segundos_int // 3600
+                            # minutos = (total_segundos_int % 3600) // 60
+                            # kpi_incidentes_tempo_medio_atend_fechados_str = f"{horas:02d}:{minutos:02d}"
+                            # Se a unidade original for HORAS DECIMAIS (ex: 1.5 para 1h30min):
+                            # total_horas_decimal = media_tempo_resol_original
+                            # horas = int(total_horas_decimal)
+                            # minutos = int((total_horas_decimal * 60) % 60)
+                            # kpi_incidentes_tempo_medio_atend_fechados_str = f"{horas:02d}:{minutos:02d}"
+                            print(f"DEBUG TV Oracle Inc. Fechados: T. Médio Atend.: {kpi_incidentes_tempo_medio_atend_fechados_str} (Orig. Média: {media_tempo_resol_original})")
+                
+                # Pizza de Status para Incidentes Oracle (como antes)
+                # ... (código da pizza de incidentes) ...
                 status_counts_incidentes = oracle_incidentes_df['STATUS'].value_counts()
                 if not status_counts_incidentes.empty and status_counts_incidentes.sum() > 0:
                     fig_pizza_inc = px.pie(status_counts_incidentes, names=status_counts_incidentes.index, values=status_counts_incidentes.values, title=None, hole=0.3, color_discrete_map=CORES_INDEX_PIZZA) 
                     fig_pizza_inc.update_layout(margin=dict(l=5,r=5,t=5,b=5), height=220, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h",yanchor="bottom",y=-0.4,xanchor="center",x=0.5,font=dict(size=9)), title_font_size=11)
                     pizza_incidentes_oracle_status_html = fig_pizza_inc.to_html(full_html=False, include_plotlyjs='cdn' if not primeiro_grafico_js_carregado_tv_oracle else False)
                     if pizza_incidentes_oracle_status_html and not primeiro_grafico_js_carregado_tv_oracle: primeiro_grafico_js_carregado_tv_oracle = True
-            else: print("ALERTA TV Oracle: DataFrame de Incidentes Oracle vazio após filtro de tipo.")
+
 
             # --- Bloco de OUTROS CHAMADOS ORACLE (Não Incidentes) ---
             oracle_nao_incidentes_df = oracle_df_mes_atual[oracle_df_mes_atual['TIPOCHAMADO'] != TIPO_CHAMADO_INCIDENTE].copy()
             print(f"  Outros Chamados Oracle (mês): {len(oracle_nao_incidentes_df)}")
             if not oracle_nao_incidentes_df.empty and 'STATUS' in oracle_nao_incidentes_df.columns:
-                # Calcular KPIs para Não-Incidentes diretamente
-                dados_nao_incidentes_oracle_kpis_dict['total_criados'] = len(oracle_nao_incidentes_df)
-                dados_nao_incidentes_oracle_kpis_dict['em_atendimento'] = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)])
-                dados_nao_incidentes_oracle_kpis_dict['fechados'] = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)])
-                dados_nao_incidentes_oracle_kpis_dict['aguardando_solicitante'] = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'] == STATUS_AGUARDANDO_SOLICITANTE])
-                dados_nao_incidentes_oracle_kpis_dict['contestado'] = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'] == STATUS_CONTESTADO])
+                # KPIs para Não-Incidentes
+                kpi_total_nao_incidentes_criados = len(oracle_nao_incidentes_df)
+                kpi_nao_incidentes_fechados = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)])
+                kpi_nao_incidentes_em_atendimento = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)])
+                kpi_nao_incidentes_aguard_solic = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'] == STATUS_AGUARDANDO_SOLICITANTE])
+                kpi_nao_incidentes_contestados = len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'] == STATUS_CONTESTADO])
                 
+                nao_incidentes_ativos_df = oracle_nao_incidentes_df[~oracle_nao_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA) & (oracle_nao_incidentes_df['STATUS'] != STATUS_REPROVADO)].copy()
+                if not nao_incidentes_ativos_df.empty:
+                    df_nao_inc_aguard_aval = nao_incidentes_ativos_df[(nao_incidentes_ativos_df['GRUPO'] == GRUPO_AGUARDANDO_AVALIACAO) & (nao_incidentes_ativos_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA + [STATUS_AGUARDANDO_SOLICITANTE, STATUS_AGUARDANDO_APROVACAO, STATUS_CONTESTADO]))]
+                    kpi_nao_incidentes_aguard_aval_grupo = len(df_nao_inc_aguard_aval)
+                    temp_aging_nao_inc = nao_incidentes_ativos_df.copy(); temp_aging_nao_inc.loc[:, 'HORA_ABERTURA_TD_TEMP'] = pd.to_timedelta(temp_aging_nao_inc['HORA_ABERTURA_RAW'].astype(str), errors='coerce'); temp_aging_nao_inc.loc[:, 'TIMESTAMP_ABERTURA'] = pd.to_datetime(temp_aging_nao_inc['DT_ABERTURA_RAW']) + temp_aging_nao_inc['HORA_ABERTURA_TD_TEMP']; temp_aging_nao_inc.dropna(subset=['TIMESTAMP_ABERTURA'], inplace=True)
+                    if not temp_aging_nao_inc.empty: agora_nao_inc = datetime.now(); temp_aging_nao_inc.loc[:, 'IDADE_CHAMADO_TD'] = agora_nao_inc - temp_aging_nao_inc['TIMESTAMP_ABERTURA']; media_idade_td_nao_inc = temp_aging_nao_inc['IDADE_CHAMADO_TD'].mean()
+                    if pd.notna(media_idade_td_nao_inc): dias_nao_inc = media_idade_td_nao_inc.days; horas_nao_inc = media_idade_td_nao_inc.seconds // 3600; kpi_nao_incidentes_aging_medio_ativos_str = f"{dias_nao_inc}d {horas_nao_inc}h"
+                    else: kpi_nao_incidentes_aging_medio_ativos_str = "N/A"
+                    kpi_nao_incidentes_abertos_sem_atendente = len(nao_incidentes_ativos_df[nao_incidentes_ativos_df['ATENDENTE'].isna() | (nao_incidentes_ativos_df['ATENDENTE'] == '')])
+
+                # Tempo Médio de Atendimento para TODOS os NÃO INCIDENTES Criados no Mês (HH:MM)
+                # (Assumindo que você quer este KPI para todos os "Outros Chamados", não só os fechados)
+                if coluna_tempo_usada_para_media in oracle_nao_incidentes_df.columns:
+                    temp_df_nao_inc_atend = oracle_nao_incidentes_df[oracle_nao_incidentes_df[coluna_tempo_usada_para_media].notna()].copy()
+                    temp_df_nao_inc_atend.loc[:, 'TEMPO_RESOL_NUM'] = pd.to_numeric(temp_df_nao_inc_atend[coluna_tempo_usada_para_media], errors='coerce')
+                    temp_df_nao_inc_atend.dropna(subset=['TEMPO_RESOL_NUM'], inplace=True)
+                    if not temp_df_nao_inc_atend.empty:
+                        media_tempo_original_nao_inc = temp_df_nao_inc_atend['TEMPO_RESOL_NUM'].mean() 
+                        if pd.notna(media_tempo_original_nao_inc): 
+                            total_minutos_int_nao_inc = int(round(media_tempo_original_nao_inc)) # ASSUMINDO MINUTOS
+                            horas_nao_inc_atend = total_minutos_int_nao_inc // 60
+                            minutos_nao_inc_atend = total_minutos_int_nao_inc % 60
+                            kpi_nao_incidentes_tempo_medio_atend_str = f"{horas_nao_inc_atend:02d}:{minutos_nao_inc_atend:02d}h"
+                            print(f"DEBUG TV Oracle Outros Chamados: T. Médio Atend.: {kpi_nao_incidentes_tempo_medio_atend_str} (Orig. Média: {media_tempo_original_nao_inc})")
+
                 status_counts_nao_inc = oracle_nao_incidentes_df['STATUS'].value_counts()
                 if not status_counts_nao_inc.empty and status_counts_nao_inc.sum() > 0:
                     fig_pizza_nao_inc = px.pie(status_counts_nao_inc, names=status_counts_nao_inc.index, values=status_counts_nao_inc.values, title=None, hole=0.3, color_discrete_map=CORES_INDEX_PIZZA)
                     fig_pizza_nao_inc.update_layout(margin=dict(l=5,r=5,t=5,b=5), height=220, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h",yanchor="bottom",y=-0.4,xanchor="center",x=0.5,font=dict(size=9)), title_font_size=11)
-                    # A pizza HTML agora vai para dentro do dicionário
-                    dados_nao_incidentes_oracle_kpis_dict['pizza_html'] = fig_pizza_nao_inc.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_tv_oracle)
-                    if dados_nao_incidentes_oracle_kpis_dict['pizza_html'] and not primeiro_grafico_js_carregado_tv_oracle:
-                        primeiro_grafico_js_carregado_tv_oracle = True
-                
-                nao_incidentes_ativos_df = oracle_nao_incidentes_df[~oracle_nao_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA) & (oracle_nao_incidentes_df['STATUS'] != STATUS_REPROVADO)].copy()
-                if not nao_incidentes_ativos_df.empty and 'GRUPO' in nao_incidentes_ativos_df.columns:
-                    df_nao_inc_aguard_aval = nao_incidentes_ativos_df[(nao_incidentes_ativos_df['GRUPO'] == GRUPO_AGUARDANDO_AVALIACAO) & (nao_incidentes_ativos_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA + [STATUS_AGUARDANDO_SOLICITANTE, STATUS_AGUARDANDO_APROVACAO, STATUS_CONTESTADO]))]
-                    kpi_nao_incidentes_aguard_aval_grupo = len(df_nao_inc_aguard_aval)
-        else:
-            print("ALERTA TV Oracle: oracle_df_mes_atual vazio ou faltam colunas essenciais para processamento.")
+                    pizza_nao_incidentes_oracle_status_html = fig_pizza_nao_inc.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_tv_oracle)
+                    if pizza_nao_incidentes_oracle_status_html and not primeiro_grafico_js_carregado_tv_oracle: primeiro_grafico_js_carregado_tv_oracle = True
+        # ... (else e prints de debug) ...
                             
     return render_template('dashboard_tv_oracle.html',
                            servico_foco=servico_filtro_oracle,
-                           # Para Incidentes (passando as variáveis individuais)
                            kpi_total_incidentes_criados=kpi_total_incidentes_criados,
                            kpi_incidentes_fechados=kpi_incidentes_fechados,
                            kpi_incidentes_em_atendimento=kpi_incidentes_em_atendimento,
@@ -279,15 +311,18 @@ def dashboard_tv_oracle():
                            kpi_incidentes_aguard_aval_grupo=kpi_incidentes_aguard_aval_grupo,
                            kpi_incidentes_aging_medio_ativos_str=kpi_incidentes_aging_medio_ativos_str,
                            kpi_incidentes_abertos_sem_atendente=kpi_incidentes_abertos_sem_atendente,
-                           kpi_incidentes_tempo_medio_atend_fechados_str=kpi_incidentes_tempo_medio_atend_fechados_str,
+                           kpi_incidentes_tempo_medio_atend_fechados_str=kpi_incidentes_tempo_medio_atend_fechados_str, 
                            pizza_incidentes_oracle_status_html=pizza_incidentes_oracle_status_html,
-                           
-                           # Para Não Incidentes (passando o dicionário)
-                           dados_nao_incidentes_oracle=dados_nao_incidentes_oracle_kpis_dict, # <<< NOME CORRIGIDO AQUI
-                           kpi_nao_incidentes_aguardando_aval=kpi_nao_incidentes_aguard_aval_grupo, 
-                           # A pizza de não incidentes está dentro de dados_nao_incidentes_oracle_kpis_dict['pizza_html']
-                           # O template já acessa como dados_nao_incidentes_oracle.pizza_html
-                           
+                           kpi_total_nao_incidentes_criados=kpi_total_nao_incidentes_criados,
+                           kpi_nao_incidentes_fechados=kpi_nao_incidentes_fechados,
+                           kpi_nao_incidentes_em_atendimento=kpi_nao_incidentes_em_atendimento,
+                           kpi_nao_incidentes_aguard_solic=kpi_nao_incidentes_aguard_solic,
+                           kpi_nao_incidentes_contestados=kpi_nao_incidentes_contestados,
+                           kpi_nao_incidentes_aguard_aval_grupo=kpi_nao_incidentes_aguard_aval_grupo,
+                           kpi_nao_incidentes_aging_medio_ativos_str=kpi_nao_incidentes_aging_medio_ativos_str,
+                           kpi_nao_incidentes_abertos_sem_atendente=kpi_nao_incidentes_abertos_sem_atendente,
+                           kpi_nao_incidentes_tempo_medio_atend_str=kpi_nao_incidentes_tempo_medio_atend_str,
+                           pizza_nao_incidentes_oracle_status_html = pizza_nao_incidentes_oracle_status_html,
                            data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
                            endpoint='dashboard_tv_oracle' 
                            )
