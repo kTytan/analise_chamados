@@ -27,15 +27,22 @@ PRIORIDADES_CRITICAS_ALTAS = ['Crítica', 'Alta']
 TIPO_CHAMADO_INCIDENTE = "Incidente" 
 TIPO_CHAMADO_REQUISICAO_SERVICO = "Requisição de Serviço" 
 
-STATUS_NOVO_SEM_CATEGORIA = "Novo (sem categoria)"; STATUS_EM_ATENDIMENTO_ESPECIFICO = "Em atendimento" 
-STATUS_ENCERRADO = "Encerrado"; STATUS_FECHADO_PELO_USUARIO = "Fechado pelo usuário"
-STATUS_FECHADO_PELO_ADMIN_AREA = "Fechado pelo administrador da área"; STATUS_CONTESTADO = "Contestado"
-STATUS_FECHADO_DECURSO_PRAZO = "Fechado por decurso de prazo"; STATUS_AGENDADO = "Agendado"
-STATUS_AGUARDANDO_SOLICITANTE = "Aguardando solicitante"; STATUS_ENCAMINHADO_FORNECEDOR = "Encaminhado para fornecedor"
-STATUS_AGUARDANDO_APROVACAO = "Aguardando aprovação"; STATUS_REPROVADO = "Reprovado"
-STATUS_AGENDADO_COM_FORNECEDOR = "Agendado com fornecedor"; STATUS_FINALIZADO_PELO_FORNECEDOR = "Finalizado pelo fornecedor"
+STATUS_NOVO_SEM_CATEGORIA = "Novo (sem categoria)"; 
+STATUS_EM_ATENDIMENTO_ESPECIFICO = "Em atendimento" 
+STATUS_ENCERRADO = "Encerrado"; 
+STATUS_FECHADO_PELO_USUARIO = "Fechado pelo usuário"
+STATUS_FECHADO_PELO_ADMIN_AREA = "Fechado pelo administrador da área"; 
+STATUS_CONTESTADO = "Contestado"
+STATUS_FECHADO_DECURSO_PRAZO = "Fechado por decurso de prazo"; 
+STATUS_AGENDADO = "Agendado"
+STATUS_AGUARDANDO_SOLICITANTE = "Aguardando solicitante"; 
+STATUS_ENCAMINHADO_FORNECEDOR = "Encaminhado para fornecedor"
+STATUS_AGUARDANDO_APROVACAO = "Aguardando aprovação"; 
+STATUS_REPROVADO = "Reprovado"
+STATUS_AGENDADO_COM_FORNECEDOR = "Agendado com fornecedor"; 
+STATUS_FINALIZADO_PELO_FORNECEDOR = "Finalizado pelo fornecedor"
 
-STATUS_EM_ATENDIMENTO_LISTA = [STATUS_NOVO_SEM_CATEGORIA, STATUS_EM_ATENDIMENTO_ESPECIFICO, STATUS_AGENDADO, STATUS_ENCAMINHADO_FORNECEDOR, STATUS_AGUARDANDO_APROVACAO, STATUS_AGENDADO_COM_FORNECEDOR]
+STATUS_EM_ATENDIMENTO_LISTA = [STATUS_EM_ATENDIMENTO_ESPECIFICO, STATUS_AGENDADO, STATUS_ENCAMINHADO_FORNECEDOR, STATUS_AGUARDANDO_APROVACAO, STATUS_AGENDADO_COM_FORNECEDOR]
 STATUS_FECHADO_LISTA = [STATUS_ENCERRADO, STATUS_FECHADO_PELO_USUARIO, STATUS_FECHADO_PELO_ADMIN_AREA, STATUS_FECHADO_DECURSO_PRAZO, STATUS_FINALIZADO_PELO_FORNECEDOR]
 
 CORES_KPI_PIZZA = {'Em Atendimento': 'orange', STATUS_AGUARDANDO_SOLICITANTE: '#007bff', STATUS_CONTESTADO: '#ffc107', STATUS_NOVO_SEM_CATEGORIA: '#add8e6', STATUS_EM_ATENDIMENTO_ESPECIFICO : '#87ceeb', STATUS_AGENDADO: '#6495ed', STATUS_ENCAMINHADO_FORNECEDOR: '#4682b4', STATUS_AGUARDANDO_APROVACAO: '#5f9ea0', STATUS_AGENDADO_COM_FORNECEDOR: '#4169e1'}
@@ -249,10 +256,10 @@ def dashboard_tv_oracle():
                 
                 # Pizza de Status para Incidentes Oracle (como antes)
                 # ... (código da pizza de incidentes) ...
-                status_counts_incidentes = oracle_incidentes_df['STATUS'].value_counts()
-                if not status_counts_incidentes.empty and status_counts_incidentes.sum() > 0:
+                status_counts_incidentes = oracle_incidentes_df['STATUS'].value_counts() #CARD incidente - esquerda 
+                if not status_counts_incidentes.empty and status_counts_incidentes.sum() > 0: 
                     fig_pizza_inc = px.pie(status_counts_incidentes, names=status_counts_incidentes.index, values=status_counts_incidentes.values, title=None, hole=0.3, color_discrete_map=CORES_INDEX_PIZZA) 
-                    fig_pizza_inc.update_layout(margin=dict(l=5,r=5,t=5,b=5), height=220, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h",yanchor="bottom",y=-0.4,xanchor="center",x=0.5,font=dict(size=9)), title_font_size=11)
+                    fig_pizza_inc.update_layout(margin=dict(l=0,r=0,t=32,b=0), height=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="v",yanchor="bottom",y=-0.6,xanchor="center",x=0.5,font=dict(size=12)), title_font_size=11)
                     pizza_incidentes_oracle_status_html = fig_pizza_inc.to_html(full_html=False, include_plotlyjs='cdn' if not primeiro_grafico_js_carregado_tv_oracle else False)
                     if pizza_incidentes_oracle_status_html and not primeiro_grafico_js_carregado_tv_oracle: primeiro_grafico_js_carregado_tv_oracle = True
 
@@ -293,11 +300,11 @@ def dashboard_tv_oracle():
                             kpi_nao_incidentes_tempo_medio_atend_str = f"{horas_nao_inc_atend:02d}:{minutos_nao_inc_atend:02d}h"
                             print(f"DEBUG TV Oracle Outros Chamados: T. Médio Atend.: {kpi_nao_incidentes_tempo_medio_atend_str} (Orig. Média: {media_tempo_original_nao_inc})")
 
-                status_counts_nao_inc = oracle_nao_incidentes_df['STATUS'].value_counts()
+                status_counts_nao_inc = oracle_nao_incidentes_df['STATUS'].value_counts() #CARD nao incidente - direita
                 if not status_counts_nao_inc.empty and status_counts_nao_inc.sum() > 0:
                     fig_pizza_nao_inc = px.pie(status_counts_nao_inc, names=status_counts_nao_inc.index, values=status_counts_nao_inc.values, title=None, hole=0.3, color_discrete_map=CORES_INDEX_PIZZA)
-                    fig_pizza_nao_inc.update_layout(margin=dict(l=5,r=5,t=5,b=5), height=220, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h",yanchor="bottom",y=-0.4,xanchor="center",x=0.5,font=dict(size=9)), title_font_size=11)
-                    pizza_nao_incidentes_oracle_status_html = fig_pizza_nao_inc.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_tv_oracle)
+                    fig_pizza_nao_inc.update_layout(margin=dict(l=0,r=0,t=32,b=0), height=None, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="v",yanchor="bottom",y=-0.6,xanchor="center",x=0.5,font=dict(size=12)), title_font_size=11)
+                    pizza_nao_incidentes_oracle_status_html = fig_pizza_nao_inc.to_html(full_html=False, include_plotlyjs='cdn' if not primeiro_grafico_js_carregado_tv_oracle else False)
                     if pizza_nao_incidentes_oracle_status_html and not primeiro_grafico_js_carregado_tv_oracle: primeiro_grafico_js_carregado_tv_oracle = True
         # ... (else e prints de debug) ...
                             
@@ -369,6 +376,111 @@ def dashboard_tv_fornecedores():
                            GRUPO_SUSTENTACAO_SEVEN_NOME=GRUPO_SUSTENTACAO_SEVEN,
                            GRUPO_SUSTENTACAO_MMBIT_NOME=GRUPO_SUSTENTACAO_MMBIT,
                            endpoint='dashboard_tv_fornecedores')
+    
+
+@app.route('/dashboard_tv_gerencial')
+def dashboard_tv_gerencial():
+    print("--- ROTA /dashboard_tv_gerencial: INÍCIO (TODOS OS CHAMADOS HISTÓRICOS ORACLE) ---")
+    servico_filtro_oracle = SERVICO_ORACLE 
+    hoje = date.today()
+    # Para esta tela, você pediu TODOS os chamados, então data de início bem antiga
+    data_inicio_str = date(2000, 1, 1).strftime('%Y-%m-%d') 
+    data_fim_str = hoje.strftime('%Y-%m-%d')
+    
+    # Datas para passar ao template para os links de drilldown (mês atual)
+    # Se os KPIs são históricos, os links de drilldown também deveriam ser históricos?
+    # Ou os KPIs são históricos mas o drilldown sempre vai para o mês atual?
+    # Vou assumir que os KPIs da tela gerencial são históricos e os links de drilldown
+    # também devem refletir o mesmo período amplo para consistência.
+    data_inicio_link = data_inicio_str
+    data_fim_link = data_fim_str
+    
+    print(f"Período de busca para TV Gerencial: {data_inicio_str} a {data_fim_str}")
+
+    todos_chamados_historico_geral_df = get_chamados(
+        data_inicio=data_inicio_str,
+        data_fim=data_fim_str,
+        area_id=1 
+    )
+    print(f"1. TV Gerencial - Total chamados (todos os serviços, histórico): {len(todos_chamados_historico_geral_df)}")
+
+    kpi_em_atendimento = 0; kpi_aguardando_solicitante = 0; kpi_aguardando_avaliacao_grupo = 0
+    kpi_contestados = 0; kpi_abertos_sem_atendente = 0; kpi_aging_medio_ativos_str = "N/A"
+    kpi_tempo_medio_atend_geral_str = "N/A"; kpi_criados_ativos_ultimos_7_dias = 0 # Este último pode não fazer sentido com dados históricos
+
+    if not todos_chamados_historico_geral_df.empty:
+        oracle_geral_historico_df = todos_chamados_historico_geral_df[
+            todos_chamados_historico_geral_df['SERVICO'] == servico_filtro_oracle
+        ].copy()
+        print(f"2. TV Gerencial - Chamados Oracle (todos os tipos, histórico): {len(oracle_geral_historico_df)}")
+
+        cols_base_necessarias = ['STATUS', 'GRUPO', 'DT_ABERTURA_RAW', 'HORA_ABERTURA_RAW', 'ATENDENTE']
+        coluna_tempo_usada_para_media = 'TEMPO_RESOLUCAO_DECORRIDO' # Alias da sua query
+
+        if not oracle_geral_historico_df.empty and \
+           all(col in oracle_geral_historico_df.columns for col in cols_base_necessarias) and \
+           coluna_tempo_usada_para_media in oracle_geral_historico_df.columns:
+
+            oracle_ativos_historico_df = oracle_geral_historico_df[
+                ~oracle_geral_historico_df['STATUS'].isin(STATUS_FECHADO_LISTA) &
+                (oracle_geral_historico_df['STATUS'] != STATUS_REPROVADO)
+            ].copy()
+            print(f"  Chamados Oracle ATIVOS (histórico): {len(oracle_ativos_historico_df)}")
+
+            if not oracle_ativos_historico_df.empty:
+                kpi_em_atendimento = len(oracle_ativos_historico_df[oracle_ativos_historico_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)])
+                kpi_aguardando_solicitante = len(oracle_ativos_historico_df[oracle_ativos_historico_df['STATUS'] == STATUS_AGUARDANDO_SOLICITANTE])
+                kpi_contestados = len(oracle_ativos_historico_df[oracle_ativos_historico_df['STATUS'] == STATUS_CONTESTADO])
+                df_aguard_aval_ativos = oracle_ativos_historico_df[(oracle_ativos_historico_df['GRUPO'] == GRUPO_AGUARDANDO_AVALIACAO) & (oracle_ativos_historico_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA + [STATUS_AGUARDANDO_SOLICITANTE, STATUS_AGUARDANDO_APROVACAO, STATUS_CONTESTADO]))]
+                kpi_aguardando_avaliacao_grupo = len(df_aguard_aval_ativos)
+                kpi_abertos_sem_atendente = len(oracle_ativos_historico_df[oracle_ativos_historico_df['ATENDENTE'].isna() | (oracle_ativos_historico_df['ATENDENTE'] == '')])
+                temp_aging = oracle_ativos_historico_df.copy()
+                try: # Cálculo do Aging
+                    temp_aging.loc[:, 'HORA_ABERTURA_TD_TEMP'] = pd.to_timedelta(temp_aging['HORA_ABERTURA_RAW'].astype(str), errors='coerce'); temp_aging.loc[:, 'TIMESTAMP_ABERTURA'] = pd.to_datetime(temp_aging['DT_ABERTURA_RAW']) + temp_aging['HORA_ABERTURA_TD_TEMP']; temp_aging.dropna(subset=['TIMESTAMP_ABERTURA'], inplace=True)
+                    if not temp_aging.empty: agora = datetime.now(); temp_aging.loc[:, 'IDADE_CHAMADO_TD'] = agora - temp_aging['TIMESTAMP_ABERTURA']; media_idade_td = temp_aging['IDADE_CHAMADO_TD'].mean()
+                    if pd.notna(media_idade_td): dias = media_idade_td.days; horas = media_idade_td.seconds // 3600; kpi_aging_medio_ativos_str = f"{dias}d {horas}h"
+                except Exception as e: kpi_aging_medio_ativos_str = "Erro"; print(f"Erro Aging Gerencial: {e}")
+                
+                # Criados e Ativos nos Últimos 7 Dias (sobre o histórico de ativos)
+                data_7_dias_atras = hoje - timedelta(days=6) 
+                df_ativos_7_dias = oracle_ativos_historico_df[pd.to_datetime(oracle_ativos_historico_df['DT_ABERTURA_RAW']).dt.date >= data_7_dias_atras]
+                kpi_criados_ativos_ultimos_7_dias = len(df_ativos_7_dias)
+            
+            # Tempo Médio de Atendimento/Resolução para chamados Oracle FECHADOS no período histórico
+            oracle_fechados_historico_df = oracle_geral_historico_df[oracle_geral_historico_df['STATUS'].isin(STATUS_FECHADO_LISTA) & oracle_geral_historico_df[coluna_tempo_usada_para_media].notna()].copy()
+            if not oracle_fechados_historico_df.empty:
+                oracle_fechados_historico_df.loc[:, 'TEMPO_RESOL_NUM'] = pd.to_numeric(oracle_fechados_historico_df[coluna_tempo_usada_para_media], errors='coerce'); oracle_fechados_historico_df.dropna(subset=['TEMPO_RESOL_NUM'], inplace=True)
+                if not oracle_fechados_historico_df.empty:
+                    media_tempo_original = oracle_fechados_historico_df['TEMPO_RESOL_NUM'].mean()
+                    if pd.notna(media_tempo_original):
+                        total_minutos_int = int(round(media_tempo_original)); horas = total_minutos_int // 60; minutos = total_minutos_int % 60
+                        kpi_tempo_medio_atend_geral_str = f"{horas:02d}:{minutos:02d}h"
+    
+    return render_template('dashboard_tv_gerencial.html',
+                           servico_foco=SERVICO_ORACLE, # Passando a string direto
+                           kpi_em_atendimento=kpi_em_atendimento,
+                           kpi_aguardando_solicitante=kpi_aguardando_solicitante,
+                           kpi_aguardando_avaliacao_grupo=kpi_aguardando_avaliacao_grupo,
+                           kpi_contestados=kpi_contestados,
+                           kpi_abertos_sem_atendente=kpi_abertos_sem_atendente,
+                           kpi_aging_medio_ativos_str=kpi_aging_medio_ativos_str,
+                           kpi_tempo_medio_atend_geral_str=kpi_tempo_medio_atend_geral_str,
+                           kpi_criados_ativos_ultimos_7_dias=kpi_criados_ativos_ultimos_7_dias,
+                           
+                           # Datas para os links de drilldown (período amplo)
+                           data_inicio_para_filtro=data_inicio_str, 
+                           data_fim_para_filtro=data_fim_str,
+                           
+                           # Strings dos status para usar nos links (alternativa a passar constantes)
+                           STATUS_AGUARDANDO_SOLICITANTE_STR=STATUS_AGUARDANDO_SOLICITANTE,
+                           STATUS_CONTESTADO_STR=STATUS_CONTESTADO,
+                           STATUS_EM_ATENDIMENTO_ESPECIFICO_STR=STATUS_EM_ATENDIMENTO_ESPECIFICO,
+                           GRUPO_AGUARDANDO_AVALIACAO_NOME=GRUPO_AGUARDANDO_AVALIACAO, # Nome do grupo para o link
+
+                           data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           endpoint='dashboard_tv_gerencial'
+                           )
+    
 
 # --- ROTA EXPORTAR EXCEL ---
 @app.route('/exportar_excel')
