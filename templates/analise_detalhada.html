@@ -5,96 +5,259 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análise Detalhada de Chamados</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
-        h1, h2 { color: #333; text-align: center; }
-        .container { max-width: 1300px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-        nav { background-color: #333; padding: 10px 0; margin-bottom: 20px; text-align: center; border-radius: 4px; }
-        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1.1em; }
-        nav a:hover { text-decoration: underline; }
-        .info { background-color: #f0f8ff; border-left: 5px solid #007bff; padding: 10px; border-radius: 5px; margin-bottom:20px;}
-        .filters { background-color: #f1f1f1; padding: 20px; border-radius: 8px; margin-bottom: 10px; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; justify-content: center; }
-        .filter-group { display: flex; flex-direction: column; margin-bottom: 10px; }
-        .filters label { margin-bottom: 5px; font-weight: bold; }
-        .filters input[type="date"], .filters select, .filters button { padding: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 1em; min-width: 180px; }
-        .filters button { background-color: #28a745; color: white; cursor: pointer; border: none; min-width: auto; }
+        body {
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6; /* Fundo da página bem claro */
+            color: #333;
+            line-height: 1.6;
+        }
+        .page-container { /* Novo container geral para padding */
+            padding: 20px;
+        }
+        .header-main {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .header-main h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 5px;
+        }
+        nav {
+            background-color: #34495e; /* Azul escuro acinzentado */
+            padding: 12px 0;
+            margin-bottom: 25px;
+            text-align: center;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        nav a {
+            color: white;
+            margin: 0 18px;
+            text-decoration: none;
+            font-size: 1.05em;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s ease;
+        }
+        nav a:hover, nav a.active {
+            background-color: #4a6fa5; /* Tom de azul para hover/ativo */
+            text-decoration: none;
+        }
+
+        .card { /* Estilo base para todos os cards */
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .card-header {
+            color: #34495e;
+            font-size: 1.4em;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .filters-container { /* Card para filtros */
+            /* display: flex já está no form, mas podemos estilizar o card */
+        }
+        .filters form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px; /* Espaçamento entre grupos de filtro */
+            align-items: flex-end;
+        }
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px; /* Espaço entre label e input/select */
+            flex: 1 1 180px; /* Permite que cresçam e quebrem linha */
+        }
+        .filters label {
+            font-weight: 500;
+            font-size: 0.9em;
+            color: #555;
+        }
+        .filters input[type="date"], .filters select {
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ced4da;
+            font-size: 0.95em;
+            background-color: #fff;
+        }
+        .filters button {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            background-color: #28a745; /* Verde para botão de filtro */
+            color: white;
+            cursor: pointer;
+            font-size: 0.95em;
+            transition: background-color 0.2s ease;
+            align-self: flex-end; /* Alinha com a base dos inputs */
+        }
         .filters button:hover { background-color: #218838; }
-        .btn-export { display: inline-block; padding: 10px 15px; background-color: #17a2b8; color: white !important; text-decoration: none; border-radius: 4px; font-size: 0.9em; border: none; cursor: pointer; }
-        .btn-export:hover { background-color: #138496; text-decoration: none; }
+
         .export-button-container { text-align: right; margin-bottom: 20px; }
-        .charts-row { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px; margin-bottom: 20px; }
-        .chart-container { flex: 1 1 45%; min-width: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        .chart-container-full-width { flex-basis: 100%; min-width: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); margin-top: 20px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #e9ecef; }
-        .pagination { margin-top: 20px; margin-bottom: 20px; text-align: center; }
+        .btn-export {
+            padding: 10px 18px; background-color: #007bff; /* Azul primário */
+            color: white !important; text-decoration: none; border-radius: 5px;
+            font-size: 0.95em; border: none; cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .btn-export:hover { background-color: #0056b3; }
+
+        .charts-grid { /* Para os gráficos menores */
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .chart-container, .chart-container-full-width { /* Estilo para os cards de gráfico */
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            padding: 15px;
+             overflow: hidden; /* Para o gráfico não vazar */
+        }
+         .chart-container-full-width {
+            margin-top: 0; /* Já tem gap do .card */
+        }
+
+
+        .info-summary { /* Card para o resumo de informações */
+            border-left: 5px solid #007bff; /* Destaque azul */
+        }
+        .info-summary p { margin: 8px 0; font-size: 0.95em; }
+
+        table {
+            width: 100%;
+            border-collapse: separate; /* Para usar border-spacing e ter bordas arredondadas */
+            border-spacing: 0;
+            margin-top: 0; /* Já está dentro de um card */
+            font-size: 0.9em;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            overflow: hidden; /* Para o border-radius funcionar com o header da tabela */
+        }
+        th, td {
+            border-bottom: 1px solid #dee2e6;
+            padding: 12px 15px; /* Mais padding */
+            text-align: left;
+            border-left: 1px solid #dee2e6;
+        }
+        th:first-child, td:first-child { border-left: none; }
+        th {
+            background-color: #e9ecef; /* Header da tabela mais claro */
+            font-weight: 600;
+            color: #495057;
+        }
+        tbody tr:nth-child(even) { background-color: #f8f9fa; }
+        tbody tr:hover { background-color: #e9ecef; }
+
+        .pagination { margin-top: 20px; margin-bottom: 0; text-align: center; }
+        /* Estilos de paginação como você já tem, podem ser mantidos ou adaptados */
         .pagination .pagination-item { margin: 0 2px; padding: 8px 12px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px; display: inline-block; }
         .pagination .ellipsis { border: none; color: #333; padding: 8px 6px; }
         .pagination .current-page { background-color: #007bff; color: white; border-color: #007bff; }
         .pagination .disabled { color: #ccc; pointer-events: none; border-color: #eee; }
-        /* .debug-info { background-color: #fffacd; border: 1px dashed red; padding: 10px; margin: 15px 0; font-family: monospace; font-size: 0.9em; } */
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="page-container">
         <nav>
             <a href="{{ url_for('index') }}">Principal</a>
-            <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
+            <a href="{{ url_for('analise_detalhada') }}" class="active">Análise Detalhada</a>
             <a href="{{ url_for('dashboard_tv_oracle') }}">TV Oracle Geral</a>
             <a href="{{ url_for('dashboard_tv_fornecedores') }}">TV Fornecedores</a>
         </nav>
-        <h1>Análise Detalhada de Chamados</h1>
-        <div class="filters">
-            <form method="GET" action="{{ url_for('analise_detalhada') }}" style="width:100%; display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; justify-content: center;">
-                <div class="filter-group"><label for="data_inicio">Data Início:</label><input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}"></div>
-                <div class="filter-group"><label for="data_fim">Data Fim:</label><input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}"></div>
-                <div class="filter-group"><label for="servico">Serviço:</label><select id="servico" name="servico"><option value="">Todos</option>{% for s in servicos %}<option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>{{ s.ds_servico }}</option>{% endfor %}</select></div>
-                <div class="filter-group"><label for="tipo_chamado">Tipo de Chamado:</label><select id="tipo_chamado" name="tipo_chamado"><option value="">Todos</option>{% for tc in tipos_chamado %}<option value="{{ tc.ds_tipo_chamado }}" {% if tc.ds_tipo_chamado == tipo_chamado_selecionado %}selected{% endif %}>{{ tc.ds_tipo_chamado }}</option>{% endfor %}</select></div>
-                <div class="filter-group"><label for="grupo_solucao">Grupo de Solução:</label><select id="grupo_solucao" name="grupo_solucao"><option value="">Todos</option>{% for gs in grupos_solucao %}<option value="{{ gs.ds_grupo_solucao }}" {% if gs.ds_grupo_solucao == grupo_solucao_selecionado %}selected{% endif %}>{{ gs.ds_grupo_solucao }}</option>{% endfor %}</select></div>
-                <div class="filter-group"><label for="unidade">Unidade:</label><select id="unidade" name="unidade"><option value="">Todas</option>{% for u in unidades %}<option value="{{ u.nm_filial }}" {% if u.nm_filial == unidade_selecionada %}selected{% endif %}>{{ u.nm_filial }}</option>{% endfor %}</select></div>
-                <div class="filter-group"><label for="status_chamado">Status:</label><select id="status_chamado" name="status_chamado"><option value="">Todos</option>{% for st_nome in lista_status_chamado %}<option value="{{ st_nome }}" {% if st_nome == status_chamado_selecionado %}selected{% endif %}>{{ st_nome }}</option>{% endfor %}</select></div>
-                <div class="filter-group"><button type="submit">Filtrar</button></div>
-            </form>
+
+        <div class="header-main">
+            <h1>Análise Detalhada de Chamados</h1>
         </div>
+
+        <div class="card filters-container">
+            <h2 class="card-header">Filtros</h2>
+            <div class="filters">
+                <form method="GET" action="{{ url_for('analise_detalhada') }}">
+                    <div class="filter-group"><label for="data_inicio">Data Início:</label><input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}"></div>
+                    <div class="filter-group"><label for="data_fim">Data Fim:</label><input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}"></div>
+                    <div class="filter-group"><label for="servico">Serviço:</label><select id="servico" name="servico"><option value="">Todos</option>{% for s in servicos %}<option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>{{ s.ds_servico }}</option>{% endfor %}</select></div>
+                    <div class="filter-group"><label for="tipo_chamado">Tipo de Chamado:</label><select id="tipo_chamado" name="tipo_chamado"><option value="">Todos</option>{% for tc in tipos_chamado %}<option value="{{ tc.ds_tipo_chamado }}" {% if tc.ds_tipo_chamado == tipo_chamado_selecionado %}selected{% endif %}>{{ tc.ds_tipo_chamado }}</option>{% endfor %}</select></div>
+                    <div class="filter-group"><label for="grupo_solucao">Grupo de Solução:</label><select id="grupo_solucao" name="grupo_solucao"><option value="">Todos</option>{% for gs in grupos_solucao %}<option value="{{ gs.ds_grupo_solucao }}" {% if gs.ds_grupo_solucao == grupo_solucao_selecionado %}selected{% endif %}>{{ gs.ds_grupo_solucao }}</option>{% endfor %}</select></div>
+                    <div class="filter-group"><label for="unidade">Unidade:</label><select id="unidade" name="unidade"><option value="">Todas</option>{% for u in unidades %}<option value="{{ u.nm_filial }}" {% if u.nm_filial == unidade_selecionada %}selected{% endif %}>{{ u.nm_filial }}</option>{% endfor %}</select></div>
+                    <div class="filter-group"><label for="status_chamado">Status:</label><select id="status_chamado" name="status_chamado"><option value="">Todos</option>{% for st_nome in lista_status_chamado %}<option value="{{ st_nome }}" {% if st_nome == status_chamado_selecionado %}selected{% endif %}>{{ st_nome }}</option>{% endfor %}</select></div>
+                    <div class="filter-group" style="margin-top:auto;"><button type="submit">Filtrar</button></div>
+                </form>
+            </div>
+        </div>
+
         <div class="export-button-container">{% include '_export_button.html' %}</div>
-        {# <div class="debug-info"> ... </div> #}
-        <div class="charts-row">
-            {% if grupo_graph_html %}<div class="chart-container">{{ grupo_graph_html|safe }}</div>{% endif %}
-            {% if unidade_graph_html %}<div class="chart-container">{{ unidade_graph_html|safe }}</div>{% endif %}
-            {% if servico_graph_html %}<div class="chart-container">{{ servico_graph_html|safe }}</div>{% endif %}
-            {% if tipo_chamado_graph_html %}<div class="chart-container">{{ tipo_chamado_graph_html|safe }}</div>{% endif %}
+        
+        {% if grupo_graph_html or unidade_graph_html or servico_graph_html or tipo_chamado_graph_html %}
+        <div class="card">
+            <h2 class="card-header">Distribuições Atuais</h2>
+            <div class="charts-grid">
+                {% if grupo_graph_html %}<div class="chart-container">{{ grupo_graph_html|safe }}</div>{% endif %}
+                {% if unidade_graph_html %}<div class="chart-container">{{ unidade_graph_html|safe }}</div>{% endif %}
+                {% if servico_graph_html %}<div class="chart-container">{{ servico_graph_html|safe }}</div>{% endif %}
+                {% if tipo_chamado_graph_html %}<div class="chart-container">{{ tipo_chamado_graph_html|safe }}</div>{% endif %}
+            </div>
         </div>
-        <div class="charts-row">
-             {% if evolucao_mensal_geral_graph_html %}<div class="chart-container-full-width">{{ evolucao_mensal_geral_graph_html|safe }}</div>{% endif %}
+        {% endif %}
+
+        {% if evolucao_mensal_geral_graph_html %}
+        <div class="card">
+            <h2 class="card-header">Evolução Geral de Chamados</h2>
+            <div class="chart-container-full-width" style="margin-top:0;"> 
+                {{ evolucao_mensal_geral_graph_html|safe }}
+            </div>
         </div>
-        <div class="charts-row">
-            {% if evolucao_tipo_graph_html %}<div class="chart-container-full-width">{{ evolucao_tipo_graph_html|safe }}</div>{% endif %}
+        {% endif %}
+        
+        {% if evolucao_tipo_graph_html %}
+        <div class="card">
+             <h2 class="card-header">Evolução de Chamados por Tipo</h2>
+            <div class="chart-container-full-width" style="margin-top:0;"> 
+                {{ evolucao_tipo_graph_html|safe }}
+            </div>
         </div>
-        {% include '_pagination_controls.html' %}
-        <div class="info">
+        {% endif %}
+
+        <div class="card info-summary">
+             <h2 class="card-header">Resumo dos Filtros</h2>
             <p>Período: <strong>{{ data_inicio }}</strong> a <strong>{{ data_fim }}</strong>.</p>
             {% if servico_selecionado %}<p>Serviço: <strong>{{ servico_selecionado }}</strong>.</p>{% endif %}
             {% if tipo_chamado_selecionado %}<p>Tipo: <strong>{{ tipo_chamado_selecionado }}</strong>.</p>{% endif %}
             {% if grupo_solucao_selecionado %}<p>Grupo Solução: <strong>{{ grupo_solucao_selecionado }}</strong>.</p>{% endif %}
             {% if unidade_selecionada %}<p>Unidade: <strong>{{ unidade_selecionada }}</strong>.</p>{% endif %}
             {% if status_chamado_selecionado %}<p>Status: <strong>{{ status_chamado_selecionado }}</strong>.</p>{% endif %}
-            <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
+            <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. 
+               Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
         </div>
+
         {% if total_chamados > 0 %}
-            <h2>Chamados Filtrados ({{ items_per_page }} por página):</h2>
-            <table>
-                <thead><tr><th>CHAMADO</th><th>TITULO</th><th>SOLICITANTE</th><th>SERVICO</th><th>TIPOCHAMADO</th><th>GRUPO</th><th>UNIDADE</th><th>STATUS</th><th>DT_ABERTURA</th></tr></thead>
-                <tbody>
-                    {% for index, chamado in chamados.iterrows() %}
-                    <tr><td>{{ chamado.CHAMADO }}</td><td>{{ chamado.TITULO }}</td><td>{{ chamado.SOLICITANTE }}</td><td>{{ chamado.SERVICO }}</td><td>{{ chamado.TIPOCHAMADO }}</td><td>{{ chamado.GRUPO }}</td><td>{{ chamado.UNIDADE }}</td>
-                    <td>{{ chamado.STATUS }}</td>{# ATUALIZADO PARA STATUS #}
-                    <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td></tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% include '_pagination_controls.html' %}
+            <div class="card">
+                <h2 class="card-header">Lista de Chamados Filtrados ({{ items_per_page }} por página)</h2>
+                <table>
+                    <thead><tr><th>CHAMADO</th><th>TITULO</th><th>SOLICITANTE</th><th>SERVICO</th><th>TIPOCHAMADO</th><th>GRUPO</th><th>UNIDADE</th><th>STATUS</th><th>DT_ABERTURA</th></tr></thead>
+                    <tbody>
+                        {% for index, chamado in chamados.iterrows() %}
+                        <tr><td>{{ chamado.CHAMADO }}</td><td>{{ chamado.TITULO }}</td><td>{{ chamado.SOLICITANTE }}</td><td>{{ chamado.SERVICO }}</td><td>{{ chamado.TIPOCHAMADO }}</td><td>{{ chamado.GRUPO }}</td><td>{{ chamado.UNIDADE }}</td>
+                        <td>{{ chamado.STATUS }}</td>
+                        <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% include '_pagination_controls.html' %}
+            </div>
         {% else %}
-            <p>Nenhum chamado encontrado para os filtros selecionados.</p>
+            <div class="card" style="text-align:center;"><p>Nenhum chamado encontrado para os filtros selecionados.</p></div>
         {% endif %}
     </div>
 </body>

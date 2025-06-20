@@ -6,99 +6,223 @@
     <meta http-equiv="refresh" content="900"> 
     <title>Monitoramento Gerencial Oracle (Histórico)</title>
     <style>
-        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e1e; color: #f0f0f0; }
-        body { display: flex; flex-direction: column; height: 100%;}
-        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; z-index: 10; }
+        /* Estilos com Tema Escuro */
+        html, body { 
+            height: 100%; width: 100%; margin: 0; padding: 0; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            background-color: #1e1e1e; 
+            color: #f0f0f0; 
+        }
+        body { 
+            display: flex; 
+            flex-direction: column; 
+        }
+        .header-tv { 
+            background-color: #0d0d0d; color: white; padding: 8px 15px; 
+            text-align: center; font-size: 1.8em; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.6); 
+            flex-shrink: 0; z-index: 10; 
+        }
         .header-tv .title { display: block; font-weight: 500; }
         .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
-        nav { background-color: #0d0d0d; padding: 10px 0; margin-bottom: 10px; text-align: center; border-radius: 4px; flex-shrink: 0;}
-        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; }
-        nav a:hover { text-decoration: underline; }
-        .tv-main-container-gerencial { padding: 15px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; }
-        .kpi-section-gerencial { padding: 15px; background-color: #282828; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .kpi-section-gerencial h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #404040; font-size: 1.5em; }
-        .kpi-grid-gerencial { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; align-items: stretch; }
-        .kpi-card { background-color: #333333; padding: 15px 10px; border-radius: 5px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100px; overflow: hidden; box-sizing: border-box; }
+        
+        nav { 
+            background-color: #0d0d0d; padding: 10px 0; 
+            margin-bottom: 10px; text-align: center; 
+            border-radius: 4px; flex-shrink: 0;
+        }
+        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s ease;}
+        nav a:hover, nav a.active { text-decoration: underline; background-color: #4a6fa5; }
+
+        .tv-main-container-gerencial { 
+            padding: 15px; 
+            flex-grow: 1; 
+            overflow-y: auto; 
+            overflow-x: hidden;
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+        }
+        .kpi-section-gerencial, .chart-section-gerencial, .dbp-kpi-section { 
+            padding: 15px; background-color: #282828; 
+            border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        .kpi-section-gerencial h2, .chart-section-gerencial h2, .dbp-kpi-section h2 { 
+            color: #00e676; text-align: center; margin-top: 0; 
+            margin-bottom: 20px; padding-bottom: 10px; 
+            border-bottom: 1px solid #404040; font-size: 1.5em; 
+        }
+        .dbp-kpi-section h3 {
+            color: #76d7c4; text-align: left; font-size: 1.3em; 
+            margin-top: 20px; margin-bottom: 15px; padding-bottom: 8px;
+            border-bottom: 1px dashed #4f4f4f;
+        }
+        .dbp-kpi-section h3:first-of-type { margin-top: 0; }
+
+        .kpi-grid-gerencial, .dbp-kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+            gap: 15px; 
+            align-items: stretch; 
+        }
+        .kpi-card { 
+            background-color: #333333; padding: 15px 10px; border-radius: 5px; 
+            box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); 
+            text-align: center; display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; 
+            min-height: 110px; overflow: hidden; box-sizing: border-box; 
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
         .kpi-card .value { font-size: 3em; font-weight: 600; color: #00d9b2; margin-bottom: 5px; line-height: 1.1; }
         .kpi-card .label { font-size: 1.3em; color: #a0a0a0; line-height: 1.2; word-wrap: break-word; }
-        .kpi-card-link { text-decoration: none; color: inherit; display: block; height: 100%; } /* Para o card inteiro ser o link */
+        .kpi-card-link { text-decoration: none; color: inherit; display: block; height: 100%; } 
         .kpi-card-link:hover .kpi-card { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+
+        .charts-row-gerencial { 
+            display: grid;
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px;
+            margin-top: 10px; 
+        }
+        .chart-container-line { 
+            background-color: #333333; padding: 10px; border-radius: 5px;
+            box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3);
+            min-height: 380px; box-sizing: border-box;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; 
+        }
+        .chart-container-line > div { width: 100% !important; height: 100% !important; }
     </style>
 </head>
 <body>
     <div class="header-tv">
-        <span class="title">Monitoramento Gerencial Oracle (Serviço: {{ servico_foco }} - Histórico)</span>
-        <span class="subtitle">Última Atualização: {{ data_atualizacao }}</span>
+        <span class="title">Dashboard Gerencial</span>
+        <span class="subtitle">Serviço: {{ servico_foco }} | Histórico Completo</span>
     </div>
     <nav>
         <a href="{{ url_for('index') }}">Principal</a>
         <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
         <a href="{{ url_for('dashboard_tv_oracle') }}">TV Oracle Detalhada</a>
         <a href="{{ url_for('dashboard_tv_fornecedores') }}">TV Fornecedores</a>
-        <a href="{{ url_for('dashboard_tv_gerencial') }}">TV Gerencial Oracle</a>
+        <a href="{{ url_for('dashboard_tv_gerencial') }}" class="active">TV Gerencial Oracle</a>
     </nav>
 
     <div class="tv-main-container-gerencial">
         <section class="kpi-section-gerencial">
-            <h2>Visão Geral de Chamados Ativos e Pendências (Histórico)</h2>
+            <h2>Visão Geral Oracle (Chamados Ativos e Pendências)</h2>
             <div class="kpi-grid-gerencial">
                 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, status_chamado=STATUS_EM_ATENDIMENTO_ESPECIFICO_STR, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link">
+                <a href="{{ url_for('analise_detalhada', servico=servico_foco, status_chamado=STATUS_EM_ATENDIMENTO_LISTA_PARA_LINK, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link" title="Ver todos os chamados 'Em Atendimento'">
                     <div class="kpi-card">
-                        <div class="value">{{ kpi_em_atendimento | default(0) }}</div>
+                        <div class="value">{{ kpis_gerais_oracle.em_atendimento | default(0) }}</div>
                         <div class="label">Em Atendimento</div>
                     </div>
                 </a>
 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, status_chamado=STATUS_AGUARDANDO_SOLICITANTE_STR, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link">
+                <a href="{{ url_for('analise_detalhada', servico=servico_foco, status_chamado=STATUS_AGUARDANDO_SOLICITANTE_STR, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link" title="Ver chamados 'Aguardando Solicitante'">
                     <div class="kpi-card">
-                        <div class="value">{{ kpi_aguardando_solicitante | default(0) }}</div>
+                        <div class="value">{{ kpis_gerais_oracle.aguardando_solicitante | default(0) }}</div>
                         <div class="label">Aguardando Solicitante</div>
                     </div>
                 </a>
                 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, grupo_solucao=GRUPO_AGUARDANDO_AVALIACAO_NOME, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link">
+                <a href="{{ url_for('analise_detalhada', servico=servico_foco, grupo_solucao=GRUPO_AGUARDANDO_AVALIACAO_NOME, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link" title="Ver chamados no grupo 'Aguardando Avaliação'">
                     <div class="kpi-card">
-                        <div class="value">{{ kpi_aguardando_avaliacao_grupo | default(0) }}</div>
+                        <div class="value">{{ kpis_gerais_oracle.aguardando_avaliacao_grupo | default(0) }}</div>
                         <div class="label">Aguardando Avaliação (Grupo)</div>
                     </div>
                 </a>
 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, status_chamado=STATUS_CONTESTADO_STR, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link">
+                <a href="{{ url_for('analise_detalhada', servico=servico_foco, status_chamado=STATUS_CONTESTADO_STR, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link" title="Ver chamados 'Contestado'">
                     <div class="kpi-card">
-                        <div class="value">{{ kpi_contestados | default(0) }}</div>
+                        <div class="value">{{ kpis_gerais_oracle.contestados | default(0) }}</div>
                         <div class="label">Contestado</div>
                     </div>
                 </a>
 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link" title="Visualizar chamados ativos sem atendente.">
+                <a href="{{ url_for('analise_detalhada', servico=servico_foco, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link" title="Visualizar chamados ativos (base para este KPI)">
                     <div class="kpi-card">
-                        <div class="value">{{ kpi_abertos_sem_atendente | default(0) }}</div>
+                        <div class="value">{{ kpis_gerais_oracle.abertos_sem_atendente | default(0) }}</div>
                         <div class="label">Abertos sem Atendente</div>
                     </div>
                 </a>
                 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link" title="Visualizar chamados ativos. O KPI mostra a média de idade.">
-                    <div class="kpi-card">
-                        <div class="value">{{ kpi_aging_medio_ativos_str | default("N/A") }}</div>
-                        <div class="label">Aging Médio (Ativos)</div>
-                    </div>
-                </a>
+                <div class="kpi-card">
+                    <div class="value">{{ kpis_gerais_oracle.aging_medio_ativos_str | default("N/A") }}</div>
+                    <div class="label">Aging Médio (Ativos)</div>
+                </div>
                 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link" title="Visualizar todos os chamados do período. O KPI mostra o T. Médio de Atend/Resol. dos Fechados.">
+                <a href="{{ url_for('analise_detalhada', servico=servico_foco, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link" title="Visualizar todos os chamados do período. O KPI mostra o T. Médio de Atend./Resol. dos Fechados.">
                     <div class="kpi-card">
-                        <div class="value">{{ kpi_tempo_medio_atend_geral_str | default("N/A") }}</div>
+                        <div class="value">{{ kpis_gerais_oracle.tempo_medio_atend_geral_str | default("N/A") }}</div>
                         <div class="label">T. Médio Atend./Resol. (Fechados)</div>
                     </div>
                 </a>
 
-                <a href="{{ url_for('analise_detalhada', servico=servico_foco, data_inicio=data_inicio_para_filtro, data_fim=data_fim_para_filtro) }}" class="kpi-card-link" title="Visualizar chamados ativos. O KPI mostra os criados e ativos nos últimos 7 dias.">
+                <a href="{{ url_for('analise_detalhada', servico=servico_foco, data_inicio=data_inicio_link_7_dias, data_fim=data_fim_link_7_dias) }}" target="_blank" class="kpi-card-link" title="Visualizar chamados ativos criados nos últimos 7 dias.">
                     <div class="kpi-card">
-                        <div class="value">{{ kpi_criados_ativos_ultimos_7_dias | default(0) }}</div>
+                        <div class="value">{{ kpis_gerais_oracle.criados_ativos_ultimos_7_dias | default(0) }}</div>
                         <div class="label">Criados Ativos (Últimos 7 dias)</div>
                     </div>
                 </a>
             </div>
+        </section>
+
+        {% if incidentes_12m_graph_html or reqserv_12m_graph_html %}
+        <section class="chart-section-gerencial">
+            <h2>Evolução Mensal (Últimos 12 Períodos - Serviço Oracle)</h2>
+            <div class="charts-row-gerencial">
+                {% if incidentes_12m_graph_html %}
+                    <div class="chart-container-line">
+                        {{ incidentes_12m_graph_html|safe }}
+                    </div>
+                {% endif %}
+                {% if reqserv_12m_graph_html %}
+                    <div class="chart-container-line">
+                        {{ reqserv_12m_graph_html|safe }}
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="dbp-kpi-section">
+            <h2>KPIs por Grupo DBP (Chamados Ativos - Todos Serviços)</h2>
+            {% if kpis_grupos_dbp %}
+                {% for grupo_nome in LISTA_GRUPOS_DBP_PARA_TEMPLATE %}
+                    {% set dados_grupo = kpis_grupos_dbp.get(grupo_nome, {}) %}
+                    <h3>{{ grupo_nome }}</h3>
+                    <div class="dbp-kpi-grid">
+                        <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, status_chamado=STATUS_EM_ATENDIMENTO_LISTA_PARA_LINK, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link">
+                            <div class="kpi-card">
+                                <div class="value">{{ dados_grupo.em_atendimento | default(0) }}</div>
+                                <div class="label">Em Atendimento</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, status_chamado=STATUS_AGUARDANDO_SOLICITANTE_STR, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link">
+                            <div class="kpi-card">
+                                <div class="value">{{ dados_grupo.aguardando_solicitante | default(0) }}</div>
+                                <div class="label">Aguard. Solicitante</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, status_chamado=STATUS_CONTESTADO_STR, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link">
+                            <div class="kpi-card">
+                                <div class="value">{{ dados_grupo.contestado | default(0) }}</div>
+                                <div class="label">Contestado</div>
+                            </div>
+                        </a>
+                        <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, data_inicio=data_inicio_link_historico, data_fim=data_fim_link_historico) }}" target="_blank" class="kpi-card-link">
+                            <div class="kpi-card">
+                                <div class="value">{{ dados_grupo.aberto_sem_atendente | default(0) }}</div>
+                                <div class="label">Abertos sem Atendente</div>
+                            </div>
+                        </a>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="text-align:center;">Nenhum dado para grupos DBP no período.</p>
+            {% endif %}
         </section>
     </div>
 </body>

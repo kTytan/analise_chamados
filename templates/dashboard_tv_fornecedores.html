@@ -4,173 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="refresh" content="900"> 
-    <title>Monitoramento Fornecedores (Mês Atual - Foco Não Fechados)</title>
-        <style>
-                body { 
-                    font-family: 'Segoe UI', Arial, sans-serif; 
-                    margin: 0; 
-                    padding: 0; 
-                    background-color: #1e1e1e; 
-                    color: #f0f0f0; 
-                    /* Oculta as barras de rolagem principal da página */
-                    overflow-x: hidden;
-                    overflow-y: hidden; 
-                    line-height: 1.4;
-                }
-                .header-tv {
-                    background-color: #0d0d0d; 
-                    color: white; 
-                    padding: 8px 15px;
-                    text-align: center; 
-                    font-size: 1.8em; /* Mantendo sua preferência de fonte */
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.6);
-                    position: sticky; top: 0; z-index: 1000;
-                }
-                .header-tv .title { display: block; font-weight: 500; }
-                .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
-            
-                .tv-main-container { 
-                    padding: 10px; 
-                    display: grid;
-                    /* Tenta colocar 2 seções de fornecedor lado a lado se a tela for bem larga */
-                    grid-template-columns: repeat(auto-fit, minmax(580px, 1fr)); 
-                    gap: 15px; /* Espaço entre as seções principais de fornecedor */
-                    height: calc(100vh - 60px); /* Altura da área de conteúdo, ajuste o 60px se o header mudar */
-                    overflow-y: auto; /* Permite scroll DENTRO do container principal se necessário */
-                }
-            
-                .fornecedor-main-section { 
-                    display: flex;
-                    flex-direction: column;
-                    gap: 12px; /* Espaço entre subseções de Incidentes e Outros */
-                    padding: 10px;
-                    background-color: #282828;
-                    border-radius: 6px;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.5);
-                }
-                .fornecedor-main-section > h2 { 
-                    color: #00e676; 
-                    text-align: center;
-                    margin-top: 0;
-                    margin-bottom: 12px;
-                    padding-bottom: 7px;
-                    border-bottom: 1px solid #404040;
-                    font-size: 1.5em; /* Sua preferência */
-                }
-                .chamado-type-subsection { 
-                    margin-bottom: 8px; 
-                    padding: 8px;
-                    background-color: #2f2f2f; 
-                    border-radius: 5px;
-                }
-                .chamado-type-subsection:last-child {
-                    margin-bottom: 0;
-                }
-                .chamado-type-subsection h3 { 
-                    color: #76d7c4; 
-                    text-align: center;
-                    margin-top: 0;
-                    margin-bottom: 10px;
-                    font-size: 1.3em; /* Ajustado, mas próximo da sua preferência */
-                    font-weight: 500;
-                }
-
-                /* Layout para 6 KPIs (2x3) + 1 Pizza ao lado */
-                .kpi-layout-container {
-                    display: grid;
-                    /* 3 colunas para KPIs com largura mínima, 1 coluna para Pizza com base e flexibilidade */
-                    grid-template-columns: repeat(3, minmax(110px, 1fr)) minmax(220px, 1.2fr); 
-                    grid-template-rows: auto auto; 
-                    gap: 8px; 
-                    align-items: stretch; 
-                }
-
-                .kpi-card {
-                    background-color: #333333;
-                    padding: 6px 4px; /* Padding bem reduzido */
-                    border-radius: 4px;
-                    box-shadow: inset 0 0 1px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2);
-                    text-align: center;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center; 
-                    align-items: center;
-                    min-height: 75px; /* Altura mínima para os cards de KPI */
-                    overflow: hidden;
-                    box-sizing: border-box;
-                }
-                .kpi-card .value {
-                    font-size: 2.5em; /* Reduzido um pouco, mas ainda grande */
-                    font-weight: 600; 
-                    color: #00d9b2; 
-                    margin-bottom: 0px;
-                    line-height: 1.1; 
-                }
-                .kpi-card .label {
-                    font-size: 1.0em; /* Reduzido para caber melhor */
-                    color: #a0a0a0; 
-                    line-height: 1.2;
-                    word-wrap: break-word; 
-                }
-            
-                .chart-card-pizza-옆 { 
-                     background-color: #333333;
-                     padding: 5px; 
-                     border-radius: 4px;
-                     box-shadow: inset 0 0 1px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2);
-                     text-align: center;
-                     display: flex;
-                     flex-direction: column;
-                     justify-content: center; 
-                     align-items: center;
-                     grid-column: 4 / 5; 
-                     grid-row: 1 / 3;    
-                     min-height: 158px; /* (75px KPI * 2) + 8px gap. A pizza (220px) vai esticar. */
-                }
-                /* Removi a NAV deste template, pois não estava no seu último envio */
-         </style>
+    <title>Monitoramento Fornecedores (Histórico - Foco Não Fechados)</title>
+    <style>
+        /* SEU CSS ATUALIZADO (como você me enviou na última vez) VAI AQUI */
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e1e; color: #f0f0f0; }
+        body { display: flex; flex-direction: column; }
+        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; z-index: 10; }
+        .header-tv .title { display: block; font-weight: 500; }
+        .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
+        .tv-main-container { padding: 10px; display: grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap: 20px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; }
+        .fornecedor-main-section { display: flex; flex-direction: column; gap: 15px; padding: 12px; background-color: #282828; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .fornecedor-main-section > h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 1px solid #404040; font-size: 1.5em; }
+        .chamado-type-subsection { margin-bottom: 10px; padding: 10px; background-color: #2f2f2f; border-radius: 5px; }
+        .chamado-type-subsection:last-child { margin-bottom: 0; }
+        .chamado-type-subsection h3 { color: #76d7c4; text-align: center; margin-top: 0; margin-bottom: 12px; font-size: 1.4em; font-weight: 500; }
+        .kpi-layout-container { display: grid; grid-template-columns: repeat(3, minmax(130px, 1fr)) minmax(240px, 1.3fr); grid-template-rows: auto auto; gap: 10px; align-items: stretch; }
+        .kpi-card { background-color: #333333; padding: 10px 5px; border-radius: 4px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 85px; overflow: hidden; box-sizing: border-box; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .kpi-card-link { text-decoration: none; color: inherit; display: block; height: 100%; } 
+        .kpi-card-link:hover .kpi-card { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        .kpi-card .value { font-size: 3em; font-weight: 600; color: #00d9b2; margin-bottom: 1px; line-height: 1.1; }
+        .kpi-card .label { font-size: 1.3em; color: #a0a0a0; line-height: 1.1; word-wrap: break-word; }
+        .chart-card-pizza-옆 { background-color: #333333; padding: 5px; border-radius: 4px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; grid-column: 4 / 5; grid-row: 1 / 3; min-height: 180px; overflow: hidden; }
+    </style>
 </head>
 <body>
     <div class="header-tv">
-        <span class="title">Monitoramento Fornecedores (Chamados do Mês Atual - Foco Não Fechados)</span>
+        <span class="title">Monitoramento Fornecedores (Histórico - Foco Não Fechados)</span>
         <span class="subtitle">Última Atualização: {{ data_atualizacao }}</span>
     </div>
-    {# <nav> ... sua navegação aqui ... </nav> #}
 
     <div class="tv-main-container">
-        {% macro render_fornecedor_kpis_pizza_v4(dados, subtitulo) %} {# Renomeei a macro para v4 #}
+        {% macro render_fornecedor_kpis_pizza_v5(dados, grupo_nome, tipo_chamado_desc, servico_filtro) %}
         <div class="chamado-type-subsection">
-            <h3>{{ subtitulo }}</h3>
+            <h3>{{ tipo_chamado_desc }}</h3>
             <div class="kpi-layout-container">
-                <div class="kpi-card">
-                    <div class="value">{{ dados.total_criados | default(0) }}</div>
-                    <div class="label">Total Enviados</div> {# RÓTULO ATUALIZADO #}
-                </div>
-                <div class="kpi-card">
-                    <div class="value">{{ dados.em_atendimento | default(0) }}</div>
-                    <div class="label">Em Atendimento</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="value">{{ dados.aguardando_solicitante | default(0) }}</div>
-                    <div class="label">Aguard. Solicitante</div>
-                </div>
+                <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, tipo_chamado=tipo_chamado_desc, servico=servico_filtro, status_chamado=STATUS_TOTAL_EM_ABERTO_LISTA, data_inicio=data_inicio_link, data_fim=data_fim_link) }}" target="_blank" class="kpi-card-link">
+                    <div class="kpi-card">
+                        <div class="value">{{ dados.total_em_aberto | default(0) }}</div>
+                        <div class="label">Total em Aberto</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, tipo_chamado=tipo_chamado_desc, servico=servico_filtro, status_chamado=STATUS_EM_ATENDIMENTO_LISTA_PARA_LINK, data_inicio=data_inicio_link, data_fim=data_fim_link) }}" target="_blank" class="kpi-card-link">
+                    <div class="kpi-card">
+                        <div class="value">{{ dados.em_atendimento | default(0) }}</div>
+                        <div class="label">Em Atendimento</div>
+                    </div>
+                </a>
+                <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, tipo_chamado=tipo_chamado_desc, servico=servico_filtro, status_chamado=STATUS_AGUARDANDO_SOLICITANTE_STR, data_inicio=data_inicio_link, data_fim=data_fim_link) }}" target="_blank" class="kpi-card-link">
+                    <div class="kpi-card">
+                        <div class="value">{{ dados.aguardando_solicitante | default(0) }}</div>
+                        <div class="label">Aguard. Solicitante</div>
+                    </div>
+                </a>
                 
                 {% if dados.pizza_html %}
                     <div class="chart-card-pizza-옆">
                         {{ dados.pizza_html|safe }}
                     </div>
                 {% else %}
-                    <div class="kpi-card chart-card-pizza-옆"><div class="label">Pizza Status Indisponível</div></div>
+                    <div class="kpi-card chart-card-pizza-옆"><div class="label">Pizza Indisponível</div></div>
                 {% endif %}
 
+                <a href="{{ url_for('analise_detalhada', grupo_solucao=grupo_nome, tipo_chamado=tipo_chamado_desc, servico=servico_filtro, status_chamado=STATUS_CONTESTADO_STR, data_inicio=data_inicio_link, data_fim=data_fim_link) }}" target="_blank" class="kpi-card-link">
+                    <div class="kpi-card">
+                        <div class="value">{{ dados.contestado | default(0) }}</div>
+                        <div class="label">Contestado</div>
+                    </div>
+                </a>
                 <div class="kpi-card">
-                    <div class="value">{{ dados.contestado | default(0) }}</div>
-                    <div class="label">Contestado</div>
-                </div>
-                <div class="kpi-card"> <div class="value">{{ dados.sla_estourado | default(0) }}</div>
+                    <div class="value">{{ dados.sla_estourado | default(0) }}</div>
                     <div class="label">SLA Atend. Estourado</div>
                 </div>
-                <div class="kpi-card"> <div class="value">{{ dados.abertos_7_dias_mais | default(0) }}</div>
+                <div class="kpi-card">
+                    <div class="value">{{ dados.abertos_7_dias_mais | default(0) }}</div>
                     <div class="label">Abertos &ge; 7 Dias</div>
                 </div>
             </div>
@@ -179,14 +85,14 @@
 
         <div class="fornecedor-main-section">
             <h2>{{ GRUPO_SUSTENTACAO_SEVEN_NOME }} (Serviço Oracle)</h2>
-            {{ render_fornecedor_kpis_pizza_v4(dados_seven_incidentes, 'Incidentes') }}
-            {{ render_fornecedor_kpis_pizza_v4(dados_seven_outros, 'Outros Chamados') }}
+            {{ render_fornecedor_kpis_pizza_v5(dados_seven_incidentes, GRUPO_SUSTENTACAO_SEVEN_NOME, 'Incidente', '1-SISTEMAS (ERP Oracle)') }}
+            {{ render_fornecedor_kpis_pizza_v5(dados_seven_outros, GRUPO_SUSTENTACAO_SEVEN_NOME, 'Requisição de Serviço', '1-SISTEMAS (ERP Oracle)') }} {# Assumindo que "Outros" é Requisição de Serviço #}
         </div>
 
         <div class="fornecedor-main-section">
             <h2>{{ GRUPO_SUSTENTACAO_MMBIT_NOME }} (Todos os Serviços)</h2>
-            {{ render_fornecedor_kpis_pizza_v4(dados_mmbit_incidentes, 'Incidentes') }}
-            {{ render_fornecedor_kpis_pizza_v4(dados_mmbit_outros, 'Outros Chamados') }}
+            {{ render_fornecedor_kpis_pizza_v5(dados_mmbit_incidentes, GRUPO_SUSTENTACAO_MMBIT_NOME, 'Incidente', '') }} {# Sem filtro de serviço #}
+            {{ render_fornecedor_kpis_pizza_v5(dados_mmbit_outros, GRUPO_SUSTENTACAO_MMBIT_NOME, 'Requisição de Serviço', '') }} {# Sem filtro de serviço #}
         </div>
     </div>
 </body>
