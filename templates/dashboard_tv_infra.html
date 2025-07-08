@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Infraestrutura e Microinformatica</title>
+    <style>
+        /* Estilos com Tema Escuro (consistente com as outras telas) */
+        html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e1e; color: #f0f0f0; }
+        body { display: flex; flex-direction: column; }
+        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; z-index: 10; }
+        .header-tv .title { display: block; font-weight: 500; }
+        .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
+        nav { background-color: #0d0d0d; padding: 10px 0; margin-bottom: 10px; text-align: center; border-radius: 4px; flex-shrink: 0;}
+        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s ease;}
+        nav a:hover, nav a.active { text-decoration: underline; background-color: #4a6fa5; }
+        .main-container { padding: 15px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 20px; }
+        
+        /* Filtros */
+        .filters-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px; background-color: #282828; padding: 15px; border-radius: 8px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-weight: 500; color: #ccc; font-size: 0.9em; text-align: left; }
+        .filter-group select { background-color: #383838; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 5px; font-size: 1em; }
+        
+        .content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; align-items: flex-start; }
+        .kpi-section { padding: 15px; background-color: #282828; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .kpi-section h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #404040; font-size: 1.5em; }
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-items: stretch; }
+        .kpi-card { background-color: #333333; padding: 15px 10px; border-radius: 5px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100px; }
+        .kpi-card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.2s ease; }
+        .kpi-card-link:hover .kpi-card { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.4); }
+        .kpi-card .value { font-size: 2.8em; font-weight: 600; color: #00d9b2; margin-bottom: 5px; line-height: 1.1; }
+        .kpi-card .label { font-size: 1.2em; color: #a0a0a0; line-height: 1.2; word-wrap: break-word; }
+        
+        .chart-container { padding: 15px; background-color: #282828; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; min-height: 500px; }
+        .chart-container > div { width: 100% !important; height: 100% !important; }
+
+        @media (max-width: 900px) { .content-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="header-tv">
+        <span class="title">Dashboard de Infraestrutura e Microinformatica</span>
+        <span class="subtitle">Última Atualização: {{ data_atualizacao }}</span>
+    </div>
+    <nav>
+        <a href="{{ url_for('index') }}">Principal</a>
+        <a href="{{ url_for('dashboard_tv_sla') }}">TV SLA</a>
+        <a href="{{ url_for('dashboard_tv_infra') }}" class="active">TV Infra</a>
+        <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
+    </nav>
+
+    <div class="main-container">
+        <form method="GET" action="{{ url_for('dashboard_tv_infra') }}" class="filters-container">
+            <div class="filter-group">
+                <label for="periodo">Período</label>
+                <select name="periodo" id="periodo" onchange="this.form.submit()">
+                    <option value="mes_atual" {% if periodo_selecionado == 'mes_atual' %}selected{% endif %}>Mês Atual</option>
+                    <option value="60d" {% if periodo_selecionado == '60d' %}selected{% endif %}>Últimos 60 Dias</option>
+                    <option value="90d" {% if periodo_selecionado == '90d' %}selected{% endif %}>Últimos 90 Dias</option>
+                    <option value="6m" {% if periodo_selecionado == '6m' %}selected{% endif %}>Últimos 6 Meses</option>
+                    <option value="1y" {% if periodo_selecionado == '1y' %}selected{% endif %}>Último 1 Ano</option>
+                </select>
+            </div>
+             <div class="filter-group">
+                <label for="tipo_chamado">Tipo de Chamado</label>
+                <select name="tipo_chamado" id="tipo_chamado" onchange="this.form.submit()">
+                    <option value="todos" {% if tipo_chamado_selecionado == 'todos' %}selected{% endif %}>Todos os Tipos</option>
+                    <option value="incidente" {% if tipo_chamado_selecionado == 'incidente' %}selected{% endif %}>Incidente</option>
+                    <option value="requisicao" {% if tipo_chamado_selecionado == 'requisicao' %}selected{% endif %}>Requisição</option>
+                </select>
+            </div>
+        </form>
+
+        <div class="content-grid">
+            <section class="kpi-section">
+                <h2>Visão Geral do Período</h2>
+                <div class="kpi-grid">
+                    <a href="{{ url_for('analise_detalhada', data_inicio=data_inicio_link, data_fim=data_fim_link, tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), grupo_solucao=grupos_infra_para_link) }}" target="_blank" class="kpi-card-link" title="Ver todos os chamados criados no período para os grupos de Infra.">
+                        <div class="kpi-card"><div class="value">{{ kpis.total_criados }}</div><div class="label">Criados</div></div>
+                    </a>
+                    <a href="{{ url_for('analise_detalhada', data_inicio=data_inicio_link, data_fim=data_fim_link, tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), grupo_solucao=grupos_infra_para_link, status_chamado=STATUS_FECHADO_LISTA_PARA_LINK) }}" target="_blank" class="kpi-card-link" title="Ver chamados fechados no período.">
+                        <div class="kpi-card"><div class="value">{{ kpis.fechados }}</div><div class="label">Fechados</div></div>
+                    </a>
+                     <a href="{{ url_for('analise_detalhada', data_inicio=data_inicio_link, data_fim=data_fim_link, tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), grupo_solucao=grupos_infra_para_link, status_chamado=STATUS_EM_ATENDIMENTO_LISTA_PARA_LINK) }}" target="_blank" class="kpi-card-link" title="Ver chamados em atendimento.">
+                        <div class="kpi-card"><div class="value">{{ kpis.em_atendimento }}</div><div class="label">Em Atendimento</div></div>
+                    </a>
+                    <a href="{{ url_for('analise_detalhada', data_inicio=data_inicio_link, data_fim=data_fim_link, tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), grupo_solucao=grupos_infra_para_link, status_chamado=STATUS_AGUARDANDO_SOLICITANTE_STR) }}" target="_blank" class="kpi-card-link" title="Ver chamados aguardando solicitante.">
+                        <div class="kpi-card"><div class="value">{{ kpis.aguardando_solicitante }}</div><div class="label">Aguard. Solicitante</div></div>
+                    </a>
+                    <a href="{{ url_for('analise_detalhada', data_inicio=data_inicio_link, data_fim=data_fim_link, tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), grupo_solucao=grupos_infra_para_link, status_chamado=STATUS_CONTESTADO_STR) }}" target="_blank" class="kpi-card-link" title="Ver chamados contestados.">
+                        <div class="kpi-card"><div class="value">{{ kpis.contestados }}</div><div class="label">Contestados</div></div>
+                    </a>
+                    <a href="{{ url_for('analise_detalhada', data_inicio=data_inicio_link, data_fim=data_fim_link, tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), grupo_solucao=grupos_infra_para_link) }}" target="_blank" class="kpi-card-link" title="Ver chamados abertos sem atendente.">
+                        <div class="kpi-card"><div class="value">{{ kpis.abertos_sem_atendente }}</div><div class="label">Abertos sem Atendente</div></div>
+                    </a>
+                    <div class="kpi-card"><div class="value">{{ kpis.aging_medio_ativos_str }}</div><div class="label">Aging Médio (Ativos)</div></div>
+                    <div class="kpi-card"><div class="value">{{ kpis.tempo_medio_resol_str }}</div><div class="label">T. Médio de Resolução</div></div>
+                </div>
+            </section>
+            
+            {% if pizza_status_html %}
+            <aside class="chart-container">
+                {{ pizza_status_html|safe }}
+            </aside>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

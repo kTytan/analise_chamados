@@ -3,96 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de Chamados</title>
+    <title>Central de Monitoramento de Chamados</title>
     <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
-        h1, h2 { color: #333; text-align: center; }
-        .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
-        nav { background-color: #333; padding: 10px 0; margin-bottom: 20px; text-align: center; border-radius: 4px; }
-        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1.1em; }
-        nav a:hover { text-decoration: underline; }
-        .info { background-color: #f0f8ff; border-left: 5px solid #007bff; padding: 10px; border-radius: 5px; margin-bottom:20px;}
-        .filters { background-color: #f1f1f1; padding: 15px; border-radius: 8px; margin-bottom: 10px; text-align: center; }
-        .filters label { margin-right: 5px; }
-        .filters input[type="date"], .filters button { padding: 10px; margin-right: 10px; border-radius: 4px; border: 1px solid #ccc; font-size: 1em; }
-        .filters button { background-color: #007bff; color: white; cursor: pointer; border: none; }
-        .filters button:hover { background-color: #0056b3; }
-        .btn-export { display: inline-block; padding: 10px 15px; background-color: #17a2b8; color: white !important; text-decoration: none; border-radius: 4px; font-size: 0.9em; border: none; cursor: pointer; }
-        .btn-export:hover { background-color: #138496; text-decoration: none; }
-        .export-button-container { text-align: right; margin-bottom: 20px; }
-        .charts-row { display: flex; flex-wrap: wrap; justify-content: space-around; gap: 20px; margin-bottom: 20px; }
-        .chart-container { flex: 1 1 45%; min-width: 400px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-shadow: 2px 2px 5px rgba(0,0,0,0.1); }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 0.9em;}
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        th { background-color: #e9ecef; }
-        .pagination { margin-top: 20px; margin-bottom: 20px; text-align: center; }
-        .pagination .pagination-item { margin: 0 2px; padding: 8px 12px; text-decoration: none; border: 1px solid #ddd; color: #007bff; border-radius: 4px; display: inline-block; }
-        .pagination .ellipsis { border: none; color: #333; padding: 8px 6px; }
-        .pagination .current-page { background-color: #007bff; color: white; border-color: #007bff; }
-        .pagination .disabled { color: #ccc; pointer-events: none; border-color: #eee; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif; 
+            background-color: #1e1e1e;
+            color: #f0f0f0;
+            text-align: center;
+        }
+        .landing-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .landing-header h1 {
+            font-size: 3em;
+            color: #00e676; /* Verde vibrante */
+            margin: 0 0 10px 0;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .landing-header p {
+            font-size: 1.2em;
+            color: #a0a0a0;
+            margin-bottom: 40px;
+        }
+        .nav-grid {
+            display: grid;
+            /* O grid agora terá 3 colunas para um layout mais organizado */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            width: 100%;
+            max-width: 1200px; /* Limita a largura máxima do grid */
+        }
+        .nav-card {
+            background-color: #282828;
+            border-radius: 8px;
+            padding: 25px;
+            text-decoration: none;
+            color: #f0f0f0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start; /* Alinha o conteúdo ao topo */
+            min-height: 160px;
+        }
+        .nav-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 230, 118, 0.2);
+            border-color: rgba(0, 230, 118, 0.5);
+        }
+        .nav-card h2 {
+            margin: 15px 0 10px 0;
+            font-size: 1.5em;
+            color: #00e676;
+        }
+        .nav-card p {
+            margin: 0;
+            font-size: 0.95em;
+            color: #a0a0a0;
+            flex-grow: 1;
+        }
+        .card-icon {
+            font-size: 2.5em;
+            color: #00bfa5;
+        }
+        .landing-footer {
+            position: absolute;
+            bottom: 15px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        /* Ajuste para telas menores */
+        @media (max-width: 900px) {
+            .nav-grid {
+                grid-template-columns: 1fr 1fr; /* 2 colunas */
+            }
+        }
+        @media (max-width: 600px) {
+            .nav-grid {
+                grid-template-columns: 1fr; /* 1 coluna */
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <nav>
-            <a href="{{ url_for('index') }}">Principal</a>
-            <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
-            <a href="{{ url_for('dashboard_tv_oracle') }}">TV Oracle Geral</a>
-            <a href="{{ url_for('dashboard_tv_fornecedores') }}">TV Fornecedores</a>
-        </nav>
-        <h1>Dashboard de Chamados</h1>
-        <div class="filters">
-            <form method="GET" action="/">
-                <label for="data_inicio">Data Início:</label>
-                <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
-                <label for="data_fim">Data Fim:</label>
-                <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
-                <button type="submit">Filtrar</button>
-            </form>
-        </div>
-        <div class="export-button-container">
-            {% include '_export_button.html' %}
-        </div>
-        <div class="charts-row">
-            {% if status_graph_html %}
-                <div class="chart-container">
-                    {{ status_graph_html|safe }}
-                </div>
-            {% endif %}
-            {% if dept_graph_html %}
-                <div class="chart-container">
-                    {{ dept_graph_html|safe }}
-                </div>
-            {% endif %}
-        </div>
-        {% include '_pagination_controls.html' %}
-        <div class="info">
-            <p>Exibindo dados para o período de: <strong>{{ data_inicio }}</strong> até <strong>{{ data_fim }}</strong>.</p>
-            <p>Total de chamados encontrados: <strong>{{ total_chamados }}</strong>. 
-               Exibindo {{ chamados|length }} chamados nesta página (Página {{ page }} de {{ total_pages }}).</p>
-        </div>
-        {% if total_chamados > 0 %}
-            <h2>Chamados ({{ items_per_page }} por página):</h2>
-            <table>
-                <thead>
-                    <tr>
-                        <th>CHAMADO</th><th>TITULO</th><th>SOLICITANTE</th><th>STATUS</th><th>DT_ABERTURA</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for index, chamado in chamados.iterrows() %}
-                    <tr>
-                        <td>{{ chamado.CHAMADO }}</td><td>{{ chamado.TITULO }}</td><td>{{ chamado.SOLICITANTE }}</td>
-                        <td>{{ chamado.STATUS }}</td>{# ATUALIZADO PARA STATUS #}
-                        <td>{{ chamado.DT_ABERTURA_FORMATADA }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% include '_pagination_controls.html' %}
-        {% else %}
-            <p>Nenhum chamado encontrado para o período selecionado.</p>
-        {% endif %}
+    <div class="landing-container">
+        <header class="landing-header">
+            <h1>Central de Monitoramento</h1>
+            <p>Selecione um dashboard para iniciar a análise.</p>
+        </header>
+
+        <main class="nav-grid">
+            <a href="{{ url_for('dashboard_tv_oracle') }}" class="nav-card">
+                <div class="card-icon">📊</div>
+                <h2>TV Oracle Detalhada</h2>
+                <p>Análise de Incidentes e Outros Chamados do serviço Oracle.</p>
+            </a>
+            
+            <a href="{{ url_for('dashboard_tv_fornecedores') }}" class="nav-card">
+                <div class="card-icon">⚙️</div>
+                <h2>TV Fornecedores</h2>
+                <p>KPIs de sustentação para os grupos SEVEN e MMBIT.</p>
+            </a>
+
+            <a href="{{ url_for('dashboard_tv_gerencial') }}" class="nav-card">
+                 <div class="card-icon">📈</div>
+                <h2>TV Gerencial</h2>
+                <p>Visão geral de chamados Oracle e KPIs de grupos DBP.</p>
+            </a>
+            
+            <a href="{{ url_for('dashboard_tv_sla') }}" class="nav-card">
+                <div class="card-icon">⏱️</div>
+                <h2>TV SLA</h2>
+                <p>Análise de performance do SLA de Resolução por período.</p>
+            </a>
+
+            <a href="{{ url_for('dashboard_tv_infra') }}" class="nav-card">
+                <div class="card-icon">🖥️</div>
+                <h2>TV Infraestrutura</h2>
+                <p>KPIs e análise de chamados para os grupos de Infra.</p>
+            </a>
+
+            <a href="{{ url_for('analise_detalhada') }}" class="nav-card">
+                 <div class="card-icon">🔍</div>
+                <h2>Análise Detalhada</h2>
+                <p>Ferramenta de busca e filtragem avançada de todos os chamados.</p>
+            </a>
+        </main>
+
+        <footer class="landing-footer">
+            <p>Plataforma de Dashboards v1.0</p>
+        </footer>
     </div>
 </body>
 </html>

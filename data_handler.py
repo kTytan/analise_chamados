@@ -17,44 +17,36 @@ def get_db_connection():
         return None
     return None
 
-def get_chamados(data_inicio, data_fim, area_id=1):
+def get_chamados(data_inicio, data_fim, area_id=1, date_filter_type='abertura'):
     conn = get_db_connection()
     if not conn:
         return pd.DataFrame()
 
-    query = """
+    # Define o campo de data a ser usado no filtro WHERE
+    date_field = "c.da_chamado" # Padrão é data de abertura
+    if date_filter_type == 'resolucao':
+        date_field = "c.dt_resolucao_chamado"
+    
+    # A query agora usa uma variável f-string para o campo de data
+    query = f"""
         SELECT
-            c.cd_chamado 				AS CHAMADO, 
-            c.tt_chamado 				AS TITULO,
-            u.nm_usuario 				AS SOLICITANTE, 
-            d.ds_departamento 			AS DEPARTAMENTO,
-            f.nm_filial 				AS UNIDADE, 
-            s.ds_servico 				AS SERVICO,
-            te.ds_template_chamado_tema AS TEMA, 
-            i.ds_tipo_chamado 			AS TIPOCHAMADO,
-            t.tt_template_chamado 		AS TEMPLATE, 
-            g.ds_grupo_solucao 			AS GRUPO,
-            e.ds_categoria 				AS CATEGORIA, 
-            p.ds_prioridade 			AS PRIORIDADE,
-            a.nm_atendente 				AS ATENDENTE, 
-            c.ds_chamado 				AS DESCRICAO,
-            p.tempo_solucao_prioridade 	AS PRAZO_HORAS,
-            c.da_chamado 				AS DT_ABERTURA_RAW, 
-            c.ha_chamado 				AS HORA_ABERTURA_RAW,
-            c.dt_atendimento_chamado 	AS DT_ATENDIMENTO_RAW, 
-            c.hr_atendimento_chamado 	AS HORA_ATENDIMENTO_RAW,
-            c.dt_resolucao_chamado 		AS DT_RESOLUCAO_RAW, 
-            c.hr_resolucao_chamado 		AS HORA_RESOLUCAO_RAW,
-            c.dt_fechamento_chamado 	AS DT_FECHAMENTO_RAW, 
-            c.hr_fechamento_chamado 	AS HORA_FECHAMENTO_RAW,
-            c.dt_agendamento_chamado 	AS DT_AGENDAMENTO_RAW,
-            c.sla_atendimento_porcentagem, 
-            c.sla_atendimento_tempo_decorrido,
-            c.sla_atendimento_tempo_definido, 
-            c.sla_encaminhamento_tempo_decorrido,
-            c.st_chamado 				AS CD_STATUS, 
-            st.ds_status_chamado 		AS STATUS,
-            c.sla_resolucao_tempo_decorrido AS TEMPO_RESOLUCAO_DECORRIDO
+            c.cd_chamado AS CHAMADO, c.tt_chamado AS TITULO,
+            u.nm_usuario AS SOLICITANTE, d.ds_departamento AS DEPARTAMENTO,
+            f.nm_filial AS UNIDADE, s.ds_servico AS SERVICO,
+            te.ds_template_chamado_tema AS TEMA, i.ds_tipo_chamado AS TIPOCHAMADO,
+            t.tt_template_chamado AS TEMPLATE, g.ds_grupo_solucao AS GRUPO,
+            e.ds_categoria AS CATEGORIA, p.ds_prioridade AS PRIORIDADE,
+            a.nm_atendente AS ATENDENTE, c.ds_chamado AS DESCRICAO,
+            p.tempo_solucao_prioridade AS PRAZO_HORAS,
+            c.da_chamado AS DT_ABERTURA_RAW, c.ha_chamado AS HORA_ABERTURA_RAW,
+            c.dt_atendimento_chamado AS DT_ATENDIMENTO_RAW, c.hr_atendimento_chamado AS HORA_ATENDIMENTO_RAW,
+            c.dt_resolucao_chamado AS DT_RESOLUCAO_RAW, c.hr_resolucao_chamado AS HORA_RESOLUCAO_RAW,
+            c.dt_fechamento_chamado AS DT_FECHAMENTO_RAW, c.hr_fechamento_chamado AS HORA_FECHAMENTO_RAW,
+            c.dt_agendamento_chamado AS DT_AGENDAMENTO_RAW,
+            c.sla_atendimento_porcentagem, c.sla_atendimento_tempo_decorrido,
+            c.sla_atendimento_tempo_definido, c.sla_encaminhamento_tempo_decorrido,
+            c.sla_resolucao_tempo_decorrido AS TEMPO_RESOLUCAO_DECORRIDO,
+            c.st_chamado AS CD_STATUS, st.ds_status_chamado AS STATUS
         FROM softdesk.sd_chamado c
         LEFT JOIN softdesk.sd_atendente a           ON c.cd_atendente = a.cd_atendente
         LEFT JOIN softdesk.sd_area r                ON c.cd_area = r.cd_area
@@ -71,7 +63,7 @@ def get_chamados(data_inicio, data_fim, area_id=1):
         LEFT JOIN softdesk.sd_status_chamado st     ON c.st_chamado = st.cd_status_chamado
         WHERE
             c.cd_area = %s
-            AND c.da_chamado BETWEEN %s AND %s
+            AND {date_field} BETWEEN %s AND %s 
     """
     params = (area_id, data_inicio, data_fim)
     try:
@@ -79,20 +71,10 @@ def get_chamados(data_inicio, data_fim, area_id=1):
         date_cols = [col for col in df.columns if 'DT_' in col and '_RAW' in col]
         for col in date_cols:
             df[col] = pd.to_datetime(df[col], errors='coerce')
-        
-        if 'STATUS' not in df.columns and not df.empty:
-            print("ALERTA DH: Coluna 'STATUS' não encontrada no DataFrame! Verifique a query SQL.")
-            df['STATUS'] = 'Status Desconhecido' 
-        elif df.empty and 'STATUS' not in df.columns: 
-            df['STATUS'] = pd.Series(dtype='object')
-
         return df
-    except mysql.connector.Error as e:
-        print(f"Erro ao executar query get_chamados: {e}")
-        return pd.DataFrame(columns=['CHAMADO', 'TITULO', 'STATUS']) 
     except Exception as e:
-        print(f"Ocorreu um erro inesperado no Pandas em get_chamados: {e}")
-        return pd.DataFrame(columns=['CHAMADO', 'TITULO', 'STATUS'])
+        print(f"Erro ao executar query get_chamados: {e}")
+        return pd.DataFrame()
     finally:
         if conn and conn.is_connected():
             conn.close()
@@ -143,3 +125,4 @@ def get_distinct_status_chamado():
     except Exception as e: print(f"Erro get_distinct_status_chamado: {e}"); return []
     finally:
         if conn and conn.is_connected(): conn.close()
+        

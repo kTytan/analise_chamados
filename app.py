@@ -107,100 +107,87 @@ def gerar_kpis_e_pizza(df_segmento, titulo_pizza, plotly_js_config='cdn'):
 
 @app.route('/')
 def index():
-    print("Acessando rota / (index)"); data_inicio_form = request.args.get('data_inicio'); data_fim_form = request.args.get('data_fim'); page = request.args.get('page', 1, type=int)
-    if data_inicio_form and data_fim_form: data_inicio_str, data_fim_str = data_inicio_form, data_fim_form
-    else: data_fim_dt = date.today(); data_inicio_dt = data_fim_dt - timedelta(days=29); data_inicio_str, data_fim_str = data_inicio_dt.strftime('%Y-%m-%d'), data_fim_dt.strftime('%Y-%m-%d')
-    todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
-    total_chamados_filtrados = 0; chamados_pagina_df = pd.DataFrame(); total_pages = 0; status_graph_html = None; dept_graph_html = None; primeiro_grafico_js_carregado_index = False
-    if not todos_chamados_df.empty:
-        total_chamados_filtrados = len(todos_chamados_df); total_pages = math.ceil(total_chamados_filtrados / ITEMS_PER_PAGE)
-        if page < 1: page = 1
-        elif page > total_pages and total_pages > 0: page = total_pages
-        start_index = (page - 1) * ITEMS_PER_PAGE; end_index = start_index + ITEMS_PER_PAGE
-        chamados_pagina_df = todos_chamados_df.iloc[start_index:end_index].copy()
-        if 'DT_ABERTURA_RAW' in chamados_pagina_df.columns: chamados_pagina_df.loc[:, 'DT_ABERTURA_FORMATADA'] = chamados_pagina_df['DT_ABERTURA_RAW'].apply(lambda x: x.strftime('%d-%m-%Y') if pd.notna(x) else '')
-        if 'STATUS' in todos_chamados_df.columns:
-            status_counts = todos_chamados_df['STATUS'].value_counts()
-            if not status_counts.empty and status_counts.sum() > 0:
-                fig_status = px.pie(status_counts, names=status_counts.index, values=status_counts.values, title='Distribuição de Chamados por Status', color_discrete_map=CORES_INDEX_PIZZA)
-                fig_status.update_layout(margin=dict(l=20,r=20,t=40,b=20), height=330, title_font_size=14, legend=dict(font=dict(size=10)))
-                status_graph_html = fig_status.to_html(full_html=False, include_plotlyjs='cdn'); primeiro_grafico_js_carregado_index = True
-        if 'DEPARTAMENTO' in todos_chamados_df.columns:
-            dept_counts = todos_chamados_df['DEPARTAMENTO'].value_counts().nlargest(TOP_N_DEPARTAMENTOS)
-            if not dept_counts.empty:
-                fig_dept = px.bar(dept_counts, x=dept_counts.index, y=dept_counts.values, title=f'Top {TOP_N_DEPARTAMENTOS} Departamentos', labels={'y': 'Nº de Chamados', 'index': 'Departamento'}, text=dept_counts.values)
-                fig_dept.update_layout(margin=dict(l=20,r=20,t=50,b=20), height=400); fig_dept.update_xaxes(tickangle=-45)
-                dept_graph_html = fig_dept.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_js_carregado_index)
-    return render_template('index.html', chamados=chamados_pagina_df, data_inicio=data_inicio_str, data_fim=data_fim_str, total_chamados=total_chamados_filtrados, page=page, total_pages=total_pages, items_per_page=ITEMS_PER_PAGE, status_graph_html=status_graph_html, dept_graph_html=dept_graph_html, endpoint='index')
+    # Esta rota agora apenas renderiza a página de apresentação estática.
+    # Não precisamos mais buscar dados, calcular KPIs ou lidar com paginação aqui.
+    return render_template('index.html')
+
 
 # --- ROTA ANALISE DETALHADA (COM FILTRO MÚLTIPLO DE STATUS) ---
 @app.route('/analise_detalhada')
 def analise_detalhada():
-    print("Acessando rota /analise_detalhada")
+    print("\n--- ROTA /analise_detalhada: INÍCIO ---")
+    
+    # Adicionado print para depurar os argumentos exatos que a URL está recebendo
+    print(f"DEBUG: Argumentos recebidos na URL: {request.args}")
+
+    # 1. Obter todos os parâmetros da URL
     data_inicio_form = request.args.get('data_inicio')
     data_fim_form = request.args.get('data_fim')
-    servico_selecionado_filtro = request.args.get('servico', '')
-    tipo_chamado_selecionado_filtro = request.args.get('tipo_chamado', '')
+    date_type_selecionado = request.args.get('date_type', 'abertura')
+    servico_selecionado = request.args.get('servico', '')
+    tipo_chamado_selecionado = request.args.get('tipo_chamado', '')
     grupo_solucao_selecionado = request.args.get('grupo_solucao', '')
     unidade_selecionada = request.args.get('unidade', '')
-    
-    status_selecionados_lista_url = request.args.getlist('status_chamado') # Pega lista da URL
-    status_chamado_form = request.args.get('status_chamado', '') # Pega filtro único do form
-
+    status_selecionados_lista = request.args.getlist('status_chamado')
     page = request.args.get('page', 1, type=int)
 
+    # 2. Definir período de datas (LÓGICA CORRIGIDA)
     if data_inicio_form and data_fim_form:
-        data_inicio_str = data_inicio_form
-        data_fim_str = data_fim_form
+        # Prioriza as datas que vêm da URL (dos links de drill-down ou do formulário)
+        data_inicio_str, data_fim_str = data_inicio_form, data_fim_form
+        print(f"INFO: Usando datas da URL/Formulário: {data_inicio_str} a {data_fim_str}")
     else:
-        data_fim_dt = date.today(); data_inicio_dt = date(2000, 1, 1) # Padrão histórico amplo
-        data_inicio_str = data_inicio_dt.strftime('%Y-%m-%d'); data_fim_str = data_fim_dt.strftime('%Y-%m-%d')
-
-    lista_servicos_df = get_distinct_servicos(); lista_tipos_chamado_df = get_distinct_tipos_chamado(); lista_grupos_solucao_df = get_distinct_grupos_solucao(); lista_unidades_df = get_distinct_unidades()
-    lista_status_para_dropdown = get_distinct_status_chamado()
-
-    todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
+        # Se NENHUMA data for fornecida, define um período padrão (Mês Atual)
+        hoje = date.today()
+        data_inicio_dt = hoje.replace(day=1)
+        data_inicio_str = data_inicio_dt.strftime('%Y-%m-%d')
+        data_fim_str = hoje.strftime('%Y-%m-%d')
+        print(f"INFO: Nenhuma data fornecida na URL, usando o padrão 'Mês Atual': {data_inicio_str} a {data_fim_str}")
     
-    chamados_filtrados_df = todos_chamados_df.copy()
-    if servico_selecionado_filtro and 'SERVICO' in chamados_filtrados_df.columns: chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['SERVICO'] == servico_selecionado_filtro]
-    if tipo_chamado_selecionado_filtro and 'TIPOCHAMADO' in chamados_filtrados_df.columns: chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['TIPOCHAMADO'] == tipo_chamado_selecionado_filtro]
-    if grupo_solucao_selecionado and 'GRUPO' in chamados_filtrados_df.columns: chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['GRUPO'] == grupo_solucao_selecionado]
-    if unidade_selecionada and 'UNIDADE' in chamados_filtrados_df.columns: chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['UNIDADE'] == unidade_selecionada]
-    
-    status_validos_para_filtro = [s for s in status_selecionados_lista_url if s]
-    status_para_exibir_no_dropdown = ''
+    # 3. Popular os dropdowns de filtro
+    lista_servicos_df = get_distinct_servicos()
+    lista_tipos_chamado_df = get_distinct_tipos_chamado()
+    lista_grupos_solucao_df = get_distinct_grupos_solucao()
+    lista_unidades_df = get_distinct_unidades()
+    lista_status_para_dropdown = get_distinct_status_chamado() 
 
-    if status_validos_para_filtro and 'STATUS' in chamados_filtrados_df.columns:
-        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['STATUS'].isin(status_validos_para_filtro)]
-        if len(status_validos_para_filtro) == 1:
-            status_para_exibir_no_dropdown = status_validos_para_filtro[0]
-    elif status_chamado_form and 'STATUS' in chamados_filtrados_df.columns:
-        chamados_filtrados_df = chamados_filtrados_df[chamados_filtrados_df['STATUS'] == status_chamado_form]
-        status_para_exibir_no_dropdown = status_chamado_form
+    # 4. Buscar dados usando o filtro de data correto
+    todos_chamados_df = get_chamados(
+        data_inicio=data_inicio_str, 
+        data_fim=data_fim_str, 
+        area_id=1,
+        date_filter_type=date_type_selecionado
+    )
     
-    # Inicialização de variáveis antes do bloco 'if'
-    chamados_pagina_df = pd.DataFrame() # <<< CORREÇÃO AQUI
-    total_chamados_final = 0; total_pages = 0;
-    grupo_graph_html = None; unidade_graph_html = None; servico_graph_html = None; tipo_chamado_graph_html = None; evolucao_mensal_geral_graph_html = None; evolucao_tipo_graph_html = None
-    primeiro_grafico_js_carregado_analise = False
+    # 5. Aplicar outros filtros (como na última versão)
+    df_filtrado = todos_chamados_df.copy()
+    if servico_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['SERVICO'] == servico_selecionado]
+    if tipo_chamado_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == tipo_chamado_selecionado]
+    if grupo_solucao_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['GRUPO'] == grupo_solucao_selecionado]
+    if unidade_selecionada:
+        df_filtrado = df_filtrado[df_filtrado['UNIDADE'] == unidade_selecionada]
+    status_validos_para_filtro = [s for s in status_selecionados_lista if s]
+    if status_validos_para_filtro:
+        df_filtrado = df_filtrado[df_filtrado['STATUS'].isin(status_validos_para_filtro)]
+    
+    status_para_exibir_no_dropdown = status_validos_para_filtro[0] if len(status_validos_para_filtro) == 1 else ''
+    if not status_para_exibir_no_dropdown and request.args.get('status_chamado'):
+        status_para_exibir_no_dropdown = request.args.get('status_chamado')
 
-    if not chamados_filtrados_df.empty:
-        total_chamados_final = len(chamados_filtrados_df); total_pages = math.ceil(total_chamados_final / ITEMS_PER_PAGE)
-        if page < 1: page = 1
-        elif page > total_pages and total_pages > 0: page = total_pages
-        start_index = (page - 1) * ITEMS_PER_PAGE; end_index = start_index + ITEMS_PER_PAGE
-        chamados_pagina_df = chamados_filtrados_df.iloc[start_index:end_index].copy()
-        if 'DT_ABERTURA_RAW' in chamados_pagina_df.columns: chamados_pagina_df.loc[:, 'DT_ABERTURA_FORMATADA'] = chamados_pagina_df['DT_ABERTURA_RAW'].apply(lambda x: x.strftime('%d-%m-%Y') if pd.notna(x) else '')
-        
-        # Lógica de geração de todos os 6 gráficos
-        if 'GRUPO' in chamados_filtrados_df.columns:
-            grupo_counts = chamados_filtrados_df['GRUPO'].value_counts().nlargest(TOP_N_GRUPOS)
-            if not grupo_counts.empty:
-                fig_grupo = px.bar(grupo_counts, x=grupo_counts.index, y=grupo_counts.values, title=f'Top {TOP_N_GRUPOS} Grupos', labels={'y': 'Nº Chamados', 'index': 'Grupo'}, text=grupo_counts.values)
-                fig_grupo.update_layout(margin=dict(l=20,r=20,t=50,b=20), height=400); fig_grupo.update_xaxes(tickangle=-45)
-                grupo_graph_html = fig_grupo.to_html(full_html=False, include_plotlyjs='cdn'); primeiro_grafico_js_carregado_analise = True
-        
-        # ... (CÓDIGO COMPLETO PARA OS OUTROS 5 GRÁFICOS DEVE ESTAR AQUI NO SEU ARQUIVO, gerenciando a flag 'primeiro_grafico_js_carregado_analise')
+    # 6. Paginação e formatação
+    total_chamados_final = len(df_filtrado)
+    total_pages = math.ceil(total_chamados_final / ITEMS_PER_PAGE) if ITEMS_PER_PAGE > 0 else 1
+    page = max(1, min(page, total_pages))
+    start_index = (page - 1) * ITEMS_PER_PAGE; end_index = start_index + ITEMS_PER_PAGE
+    chamados_pagina_df = df_filtrado.iloc[start_index:end_index].copy()
+    if 'DT_ABERTURA_RAW' in chamados_pagina_df.columns:
+        chamados_pagina_df.loc[:, 'DT_ABERTURA_FORMATADA'] = chamados_pagina_df['DT_ABERTURA_RAW'].apply(lambda x: x.strftime('%d-%m-%Y') if pd.notna(x) else '')
+
+    # Lógica para gerar gráficos (se houver nesta página)
+    # ...
     
     return render_template('analise_detalhada.html',
                            chamados=chamados_pagina_df, data_inicio=data_inicio_str, data_fim=data_fim_str,
@@ -209,55 +196,92 @@ def analise_detalhada():
                            grupos_solucao=lista_grupos_solucao_df.to_dict(orient='records'),
                            unidades=lista_unidades_df.to_dict(orient='records'),
                            lista_status_chamado=lista_status_para_dropdown,
-                           servico_selecionado=servico_selecionado_filtro,
-                           tipo_chamado_selecionado=tipo_chamado_selecionado_filtro,
+                           servico_selecionado=servico_selecionado,
+                           tipo_chamado_selecionado=tipo_chamado_selecionado,
                            grupo_solucao_selecionado=grupo_solucao_selecionado,
                            unidade_selecionada=unidade_selecionada,
                            status_chamado_selecionado=status_para_exibir_no_dropdown,
+                           date_type_selecionado=date_type_selecionado, 
                            total_chamados=total_chamados_final,
                            page=page, total_pages=total_pages, items_per_page=ITEMS_PER_PAGE,
-                           grupo_graph_html=grupo_graph_html, unidade_graph_html=unidade_graph_html,
-                           servico_graph_html=servico_graph_html, tipo_chamado_graph_html=tipo_chamado_graph_html,
-                           evolucao_mensal_geral_graph_html=evolucao_mensal_geral_graph_html,
-                           evolucao_tipo_graph_html=evolucao_tipo_graph_html,
+                           # Passe suas variáveis de gráfico aqui
                            endpoint='analise_detalhada')
+    
 
 # --- ROTA DASHBOARD TV ORACLE ---
 @app.route('/dashboard_tv_oracle')
 def dashboard_tv_oracle():
-    # ... (Código COMPLETO da rota como na última versão, que já estava corrigida) ...
     print("--- ROTA /dashboard_tv_oracle: INÍCIO (Mês Atual - Incidentes vs Não Incidentes) ---")
-    servico_filtro_oracle = SERVICO_ORACLE; hoje = date.today() 
-    primeiro_dia_mes_atual = hoje.replace(day=1); dias_no_mes = calendar.monthrange(hoje.year, hoje.month)[1]; ultimo_dia_mes_atual = hoje.replace(day=dias_no_mes); data_inicio_str = primeiro_dia_mes_atual.strftime('%Y-%m-%d'); data_fim_str = ultimo_dia_mes_atual.strftime('%Y-%m-%d')
+    servico_filtro_oracle = SERVICO_ORACLE
+    hoje = date.today() 
+    primeiro_dia_mes_atual = hoje.replace(day=1)
+    dias_no_mes = calendar.monthrange(hoje.year, hoje.month)[1]
+    ultimo_dia_mes_atual = hoje.replace(day=dias_no_mes)
+    data_inicio_str = primeiro_dia_mes_atual.strftime('%Y-%m-%d')
+    data_fim_str = ultimo_dia_mes_atual.strftime('%Y-%m-%d')
+    
     todos_chamados_mes_atual_df = get_chamados(data_inicio=data_inicio_str,data_fim=data_fim_str,area_id=1)
-    kpi_total_incidentes_criados=0;kpi_incidentes_fechados=0;kpi_incidentes_em_atendimento=0;kpi_incidentes_aguard_solic=0;kpi_incidentes_contestados=0;kpi_incidentes_aguard_aval_grupo=0;kpi_incidentes_aging_medio_ativos_str="N/A";kpi_incidentes_abertos_sem_atendente=0;kpi_incidentes_tempo_medio_atend_fechados_str="N/A";pizza_incidentes_oracle_status_html=None
-    kpi_total_nao_incidentes_criados=0;kpi_nao_incidentes_fechados=0;kpi_nao_incidentes_em_atendimento=0;kpi_nao_incidentes_aguard_solic=0;kpi_nao_incidentes_contestados=0;kpi_nao_incidentes_aguard_aval_grupo=0;kpi_nao_incidentes_aging_medio_ativos_str="N/A";kpi_nao_incidentes_abertos_sem_atendente=0;kpi_nao_incidentes_tempo_medio_atend_str="N/A";pizza_nao_incidentes_oracle_status_html=None
+    print(f"1. TV Oracle - Total chamados (todos os tipos) mês: {len(todos_chamados_mes_atual_df)}")
+
+    # Inicializar todas as variáveis
+    kpi_total_incidentes_criados = 0; kpi_incidentes_fechados = 0; kpi_incidentes_em_atendimento = 0
+    kpi_incidentes_aguard_solic = 0; kpi_incidentes_contestados = 0
+    kpi_incidentes_aguard_aval_grupo = 0; kpi_incidentes_aging_medio_ativos_str = "N/A"
+    kpi_incidentes_abertos_sem_atendente = 0; kpi_incidentes_tempo_medio_atend_fechados_str = "N/A"
+    pizza_incidentes_oracle_status_html = None
+    
+    kpi_total_nao_incidentes_criados = 0; kpi_nao_incidentes_fechados = 0; kpi_nao_incidentes_em_atendimento = 0
+    kpi_nao_incidentes_aguard_solic = 0; kpi_nao_incidentes_contestados = 0
+    kpi_nao_incidentes_aguard_aval_grupo = 0; kpi_nao_incidentes_aging_medio_ativos_str = "N/A"
+    kpi_nao_incidentes_abertos_sem_atendente = 0; kpi_nao_incidentes_tempo_medio_atend_str = "N/A"
+    pizza_nao_incidentes_oracle_status_html = None
+    
     primeiro_grafico_js_carregado_tv_oracle = False
+
     if not todos_chamados_mes_atual_df.empty:
-        oracle_df_mes_atual=todos_chamados_mes_atual_df[todos_chamados_mes_atual_df['SERVICO']==servico_filtro_oracle].copy();cols_base_necessarias=['TIPOCHAMADO','STATUS','GRUPO','DT_ABERTURA_RAW','HORA_ABERTURA_RAW','ATENDENTE'];coluna_tempo_usada_para_media='TEMPO_RESOLUCAO_DECORRIDO'
-        if not oracle_df_mes_atual.empty and all(col in oracle_df_mes_atual.columns for col in cols_base_necessarias) and coluna_tempo_usada_para_media in oracle_df_mes_atual.columns:
-            oracle_incidentes_df=oracle_df_mes_atual[oracle_df_mes_atual['TIPOCHAMADO']==TIPO_CHAMADO_INCIDENTE].copy()
+        oracle_df_mes_atual = todos_chamados_mes_atual_df[todos_chamados_mes_atual_df['SERVICO'] == servico_filtro_oracle].copy()
+        print(f"2. TV Oracle - Chamados Oracle (todos os tipos) mês: {len(oracle_df_mes_atual)}")
+
+        cols_base_necessarias = ['TIPOCHAMADO', 'STATUS', 'GRUPO', 'DT_ABERTURA_RAW', 'HORA_ABERTURA_RAW', 'ATENDENTE']
+        coluna_tempo_usada_para_media = 'TEMPO_RESOLUCAO_DECORRIDO' 
+
+        if not oracle_df_mes_atual.empty and \
+           all(col in oracle_df_mes_atual.columns for col in cols_base_necessarias) and \
+           coluna_tempo_usada_para_media in oracle_df_mes_atual.columns :
+
+            # --- Bloco de INCIDENTES ORACLE ---
+            oracle_incidentes_df = oracle_df_mes_atual[oracle_df_mes_atual['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE].copy()
+            print(f"  Incidentes Oracle (mês): {len(oracle_incidentes_df)}")
             if not oracle_incidentes_df.empty:
-                kpi_total_incidentes_criados=len(oracle_incidentes_df);kpi_incidentes_fechados=len(oracle_incidentes_df[oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)]);kpi_incidentes_em_atendimento=len(oracle_incidentes_df[oracle_incidentes_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)]);kpi_incidentes_aguard_solic=len(oracle_incidentes_df[oracle_incidentes_df['STATUS']==STATUS_AGUARDANDO_SOLICITANTE]);kpi_incidentes_contestados=len(oracle_incidentes_df[oracle_incidentes_df['STATUS']==STATUS_CONTESTADO])
-                incidentes_ativos_df=oracle_incidentes_df[~oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)&(oracle_incidentes_df['STATUS']!=STATUS_REPROVADO)].copy()
+                kpi_total_incidentes_criados=len(oracle_incidentes_df); kpi_incidentes_fechados=len(oracle_incidentes_df[oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)]); kpi_incidentes_em_atendimento=len(oracle_incidentes_df[oracle_incidentes_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)]); kpi_incidentes_aguard_solic=len(oracle_incidentes_df[oracle_incidentes_df['STATUS'] == STATUS_AGUARDANDO_SOLICITANTE]); kpi_incidentes_contestados=len(oracle_incidentes_df[oracle_incidentes_df['STATUS'] == STATUS_CONTESTADO])
+                incidentes_ativos_df=oracle_incidentes_df[~oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA) & (oracle_incidentes_df['STATUS'] != STATUS_REPROVADO)].copy()
                 if not incidentes_ativos_df.empty:
-                    df_inc_aguard_aval=incidentes_ativos_df[(incidentes_ativos_df['GRUPO']==GRUPO_AGUARDANDO_AVALIACAO)&(incidentes_ativos_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA+[STATUS_AGUARDANDO_SOLICITANTE,STATUS_AGUARDANDO_APROVACAO,STATUS_CONTESTADO]))];kpi_incidentes_aguard_aval_grupo=len(df_inc_aguard_aval)
-                    temp_aging_inc=incidentes_ativos_df.copy();temp_aging_inc.loc[:,'HORA_ABERTURA_TD_TEMP']=pd.to_timedelta(temp_aging_inc['HORA_ABERTURA_RAW'].astype(str),errors='coerce');temp_aging_inc.loc[:,'TIMESTAMP_ABERTURA']=pd.to_datetime(temp_aging_inc['DT_ABERTURA_RAW'])+temp_aging_inc['HORA_ABERTURA_TD_TEMP'];temp_aging_inc.dropna(subset=['TIMESTAMP_ABERTURA'],inplace=True)
-                    if not temp_aging_inc.empty:agora_inc=datetime.now();temp_aging_inc.loc[:,'IDADE_CHAMADO_TD']=agora_inc-temp_aging_inc['TIMESTAMP_ABERTURA'];media_idade_td_inc=temp_aging_inc['IDADE_CHAMADO_TD'].mean()
+                    df_inc_aguard_aval=incidentes_ativos_df[(incidentes_ativos_df['GRUPO']==GRUPO_AGUARDANDO_AVALIACAO) & (incidentes_ativos_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA+[STATUS_AGUARDANDO_SOLICITANTE,STATUS_AGUARDANDO_APROVACAO,STATUS_CONTESTADO]))]; kpi_incidentes_aguard_aval_grupo=len(df_inc_aguard_aval)
+                    temp_aging_inc=incidentes_ativos_df.copy(); temp_aging_inc.loc[:,'HORA_ABERTURA_TD_TEMP']=pd.to_timedelta(temp_aging_inc['HORA_ABERTURA_RAW'].astype(str),errors='coerce'); temp_aging_inc.loc[:,'TIMESTAMP_ABERTURA']=pd.to_datetime(temp_aging_inc['DT_ABERTURA_RAW']) + temp_aging_inc['HORA_ABERTURA_TD_TEMP']; temp_aging_inc.dropna(subset=['TIMESTAMP_ABERTURA'],inplace=True)
+                    if not temp_aging_inc.empty: agora_inc=datetime.now();temp_aging_inc.loc[:,'IDADE_CHAMADO_TD']=agora_inc-temp_aging_inc['TIMESTAMP_ABERTURA'];media_idade_td_inc=temp_aging_inc['IDADE_CHAMADO_TD'].mean()
                     if pd.notna(media_idade_td_inc):dias_inc=media_idade_td_inc.days;horas_inc=media_idade_td_inc.seconds//3600;kpi_incidentes_aging_medio_ativos_str=f"{dias_inc}d {horas_inc}h"
-                    else:kpi_incidentes_aging_medio_ativos_str="N/A"
+                    else: kpi_incidentes_aging_medio_ativos_str="N/A"
                     kpi_incidentes_abertos_sem_atendente=len(incidentes_ativos_df[incidentes_ativos_df['ATENDENTE'].isna()|(incidentes_ativos_df['ATENDENTE']=='')])
+                
+                # --- CORREÇÃO AQUI ---
+                media_tempo_original = None # Inicializa com None
                 incidentes_fechados_com_tempo_df=oracle_incidentes_df[(oracle_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA))&(oracle_incidentes_df[coluna_tempo_usada_para_media].notna())].copy()
                 if not incidentes_fechados_com_tempo_df.empty:
                     incidentes_fechados_com_tempo_df.loc[:,'TEMPO_RESOL_NUM']=pd.to_numeric(incidentes_fechados_com_tempo_df[coluna_tempo_usada_para_media],errors='coerce');incidentes_fechados_com_tempo_df.dropna(subset=['TEMPO_RESOL_NUM'],inplace=True)
-                    if not incidentes_fechados_com_tempo_df.empty:media_tempo_original=incidentes_fechados_com_tempo_df['TEMPO_RESOL_NUM'].mean()
-                    if pd.notna(media_tempo_original):total_minutos_int=int(round(media_tempo_original));horas=total_minutos_int//60;minutos=total_minutos_int%60;kpi_incidentes_tempo_medio_atend_fechados_str=f"{horas:02d}:{minutos:02d}h"
+                    if not incidentes_fechados_com_tempo_df.empty:
+                        media_tempo_original=incidentes_fechados_com_tempo_df['TEMPO_RESOL_NUM'].mean()
+                
+                if pd.notna(media_tempo_original):
+                    total_minutos_int=int(round(media_tempo_original));horas=total_minutos_int//60;minutos=total_minutos_int%60;kpi_incidentes_tempo_medio_atend_fechados_str=f"{horas:02d}:{minutos:02d}h"
+                
                 status_counts_incidentes=oracle_incidentes_df['STATUS'].value_counts()
                 if not status_counts_incidentes.empty and status_counts_incidentes.sum()>0:
                     fig_pizza_inc=px.pie(status_counts_incidentes,names=status_counts_incidentes.index,values=status_counts_incidentes.values,title=None,hole=0.3,color_discrete_map=CORES_INDEX_PIZZA)
                     fig_pizza_inc.update_layout(margin=dict(l=5,r=5,t=5,b=5),height=220,paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)',font_color='#DDDDDD',legend=dict(orientation="h",yanchor="bottom",y=-0.4,xanchor="center",x=0.5,font=dict(size=9)),title_font_size=11)
                     pizza_incidentes_oracle_status_html=fig_pizza_inc.to_html(full_html=False,include_plotlyjs='cdn' if not primeiro_grafico_js_carregado_tv_oracle else False)
                     if pizza_incidentes_oracle_status_html and not primeiro_grafico_js_carregado_tv_oracle:primeiro_grafico_js_carregado_tv_oracle=True
+
+            # --- Bloco de OUTROS CHAMADOS ORACLE (Não Incidentes) ---
             oracle_nao_incidentes_df=oracle_df_mes_atual[oracle_df_mes_atual['TIPOCHAMADO']!=TIPO_CHAMADO_INCIDENTE].copy()
             if not oracle_nao_incidentes_df.empty and 'STATUS' in oracle_nao_incidentes_df.columns:
                 kpi_total_nao_incidentes_criados=len(oracle_nao_incidentes_df);kpi_nao_incidentes_fechados=len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'].isin(STATUS_FECHADO_LISTA)]);kpi_nao_incidentes_em_atendimento=len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)]);kpi_nao_incidentes_aguard_solic=len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS']==STATUS_AGUARDANDO_SOLICITANTE]);kpi_nao_incidentes_contestados=len(oracle_nao_incidentes_df[oracle_nao_incidentes_df['STATUS']==STATUS_CONTESTADO])
@@ -269,19 +293,47 @@ def dashboard_tv_oracle():
                     if pd.notna(media_idade_td_nao_inc):dias_nao_inc=media_idade_td_nao_inc.days;horas_nao_inc=media_idade_td_nao_inc.seconds//3600;kpi_nao_incidentes_aging_medio_ativos_str=f"{dias_nao_inc}d {horas_nao_inc}h"
                     else: kpi_nao_incidentes_aging_medio_ativos_str="N/A"
                     kpi_nao_incidentes_abertos_sem_atendente=len(nao_incidentes_ativos_df[nao_incidentes_ativos_df['ATENDENTE'].isna()|(nao_incidentes_ativos_df['ATENDENTE']=='')])
+                
+                # --- CORREÇÃO AQUI ---
+                media_tempo_original_nao_inc = None # Inicializa com None
                 if coluna_tempo_usada_para_media in oracle_nao_incidentes_df.columns:
                     temp_df_nao_inc_atend=oracle_nao_incidentes_df[oracle_nao_incidentes_df[coluna_tempo_usada_para_media].notna()].copy()
                     temp_df_nao_inc_atend.loc[:,'TEMPO_RESOL_NUM']=pd.to_numeric(temp_df_nao_inc_atend[coluna_tempo_usada_para_media],errors='coerce');temp_df_nao_inc_atend.dropna(subset=['TEMPO_RESOL_NUM'],inplace=True)
-                    if not temp_df_nao_inc_atend.empty:media_tempo_original_nao_inc=temp_df_nao_inc_atend['TEMPO_RESOL_NUM'].mean()
-                    if pd.notna(media_tempo_original_nao_inc):total_minutos_int_nao_inc=int(round(media_tempo_original_nao_inc));horas_nao_inc_atend=total_minutos_int_nao_inc//60;minutos_nao_inc_atend=total_minutos_int_nao_inc%60;kpi_nao_incidentes_tempo_medio_atend_str=f"{horas_nao_inc_atend:02d}:{minutos_nao_inc_atend:02d}h"
+                    if not temp_df_nao_inc_atend.empty:
+                        media_tempo_original_nao_inc=temp_df_nao_inc_atend['TEMPO_RESOL_NUM'].mean()
+                
+                if pd.notna(media_tempo_original_nao_inc):
+                    total_minutos_int_nao_inc=int(round(media_tempo_original_nao_inc));horas_nao_inc_atend=total_minutos_int_nao_inc//60;minutos_nao_inc_atend=total_minutos_int_nao_inc%60;kpi_nao_incidentes_tempo_medio_atend_str=f"{horas_nao_inc_atend:02d}:{minutos_nao_inc_atend:02d}h"
+                
                 status_counts_nao_inc=oracle_nao_incidentes_df['STATUS'].value_counts()
                 if not status_counts_nao_inc.empty and status_counts_nao_inc.sum()>0:
                     fig_pizza_nao_inc=px.pie(status_counts_nao_inc,names=status_counts_nao_inc.index,values=status_counts_nao_inc.values,title=None,hole=0.3,color_discrete_map=CORES_INDEX_PIZZA)
                     fig_pizza_nao_inc.update_layout(margin=dict(l=5,r=5,t=5,b=5),height=220,paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)',font_color='#DDDDDD',legend=dict(orientation="h",yanchor="bottom",y=-0.4,xanchor="center",x=0.5,font=dict(size=9)),title_font_size=11)
                     pizza_nao_incidentes_oracle_status_html=fig_pizza_nao_inc.to_html(full_html=False,include_plotlyjs=not primeiro_grafico_js_carregado_tv_oracle)
                     if pizza_nao_incidentes_oracle_status_html and not primeiro_grafico_js_carregado_tv_oracle:primeiro_grafico_js_carregado_tv_oracle=True
-    return render_template('dashboard_tv_oracle.html',servico_foco=servico_filtro_oracle,kpi_total_incidentes_criados=kpi_total_incidentes_criados,kpi_incidentes_fechados=kpi_incidentes_fechados,kpi_incidentes_em_atendimento=kpi_incidentes_em_atendimento,kpi_incidentes_aguard_solic=kpi_incidentes_aguard_solic,kpi_incidentes_contestados=kpi_incidentes_contestados,kpi_incidentes_aguard_aval_grupo=kpi_incidentes_aguard_aval_grupo,kpi_incidentes_aging_medio_ativos_str=kpi_incidentes_aging_medio_ativos_str,kpi_incidentes_abertos_sem_atendente=kpi_incidentes_abertos_sem_atendente,kpi_incidentes_tempo_medio_atend_fechados_str=kpi_incidentes_tempo_medio_atend_fechados_str,pizza_incidentes_oracle_status_html=pizza_incidentes_oracle_status_html,kpi_total_nao_incidentes_criados=kpi_total_nao_incidentes_criados,kpi_nao_incidentes_fechados=kpi_nao_incidentes_fechados,kpi_nao_incidentes_em_atendimento=kpi_nao_incidentes_em_atendimento,kpi_nao_incidentes_aguard_solic=kpi_nao_incidentes_aguard_solic,kpi_nao_incidentes_contestados=kpi_nao_incidentes_contestados,kpi_nao_incidentes_aguard_aval_grupo=kpi_nao_incidentes_aguard_aval_grupo,kpi_nao_incidentes_aging_medio_ativos_str=kpi_nao_incidentes_aging_medio_ativos_str,kpi_nao_incidentes_abertos_sem_atendente=kpi_nao_incidentes_abertos_sem_atendente,kpi_nao_incidentes_tempo_medio_atend_str=kpi_nao_incidentes_tempo_medio_atend_str,pizza_nao_incidentes_oracle_status_html=pizza_nao_incidentes_oracle_status_html,data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),endpoint='dashboard_tv_oracle')
-
+    
+    return render_template('dashboard_tv_oracle.html',
+                           servico_foco=servico_filtro_oracle,
+                           kpi_total_incidentes_criados=kpi_total_incidentes_criados, kpi_incidentes_fechados=kpi_incidentes_fechados,
+                           kpi_incidentes_em_atendimento=kpi_incidentes_em_atendimento, kpi_incidentes_aguard_solic=kpi_incidentes_aguard_solic,
+                           kpi_incidentes_contestados=kpi_incidentes_contestados, kpi_incidentes_aguard_aval_grupo=kpi_incidentes_aguard_aval_grupo,
+                           kpi_incidentes_aging_medio_ativos_str=kpi_incidentes_aging_medio_ativos_str,
+                           kpi_incidentes_abertos_sem_atendente=kpi_incidentes_abertos_sem_atendente,
+                           kpi_incidentes_tempo_medio_atend_fechados_str=kpi_incidentes_tempo_medio_atend_fechados_str, 
+                           pizza_incidentes_oracle_status_html=pizza_incidentes_oracle_status_html,
+                           kpi_total_nao_incidentes_criados=kpi_total_nao_incidentes_criados,
+                           kpi_nao_incidentes_fechados=kpi_nao_incidentes_fechados,
+                           kpi_nao_incidentes_em_atendimento=kpi_nao_incidentes_em_atendimento,
+                           kpi_nao_incidentes_aguard_solic=kpi_nao_incidentes_aguard_solic,
+                           kpi_nao_incidentes_contestados=kpi_nao_incidentes_contestados,
+                           kpi_nao_incidentes_aguard_aval_grupo=kpi_nao_incidentes_aguard_aval_grupo,
+                           kpi_nao_incidentes_aging_medio_ativos_str=kpi_nao_incidentes_aging_medio_ativos_str,
+                           kpi_nao_incidentes_abertos_sem_atendente=kpi_nao_incidentes_abertos_sem_atendente,
+                           kpi_nao_incidentes_tempo_medio_atend_str=kpi_nao_incidentes_tempo_medio_atend_str,
+                           pizza_nao_incidentes_oracle_status_html=pizza_nao_incidentes_oracle_status_html,
+                           data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           endpoint='dashboard_tv_oracle' )
+    
 # --- ROTA DASHBOARD TV FORNECEDORES ---
 @app.route('/dashboard_tv_fornecedores')
 def dashboard_tv_fornecedores():
@@ -472,6 +524,176 @@ def dashboard_tv_gerencial():
                            STATUS_EM_ATENDIMENTO_LISTA_PARA_LINK=STATUS_EM_ATENDIMENTO_LISTA,
                            data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
                            endpoint='dashboard_tv_gerencial'
+                           )
+
+@app.route('/dashboard_tv_sla')
+def dashboard_tv_sla():
+    print("\n--- ROTA /dashboard_tv_sla: INÍCIO (FILTRO POR DATA DE RESOLUÇÃO CORRIGIDO) ---")
+    
+    # 1. Ler os parâmetros de filtro da URL
+    periodo_selecionado = request.args.get('periodo', 'mes_atual')
+    tipo_chamado_selecionado = request.args.get('tipo_chamado', 'todos')
+    servico_selecionado = request.args.get('servico', 'todos')
+    
+    # 2. Definir o período de consulta
+    hoje = date.today(); data_fim = hoje
+    if periodo_selecionado == 'mes_atual': data_inicio = hoje.replace(day=1)
+    elif periodo_selecionado == '60d': data_inicio = hoje - timedelta(days=59)
+    elif periodo_selecionado == '90d': data_inicio = hoje - timedelta(days=89)
+    elif periodo_selecionado == '6m': data_inicio = (pd.Timestamp(hoje) - pd.DateOffset(months=6)).date()
+    elif periodo_selecionado == '1y': data_inicio = (pd.Timestamp(hoje) - pd.DateOffset(years=1)).date()
+    else: data_inicio = hoje.replace(day=1)
+
+    data_inicio_str = data_inicio.strftime('%Y-%m-%d'); data_fim_str = data_fim.strftime('%Y-%m-%d')
+    print(f"Filtros Ativos -> Período de Resolução: {data_inicio_str} a {data_fim_str}, Tipo: {tipo_chamado_selecionado}, Serviço: {servico_selecionado}")
+
+    # 3. CORREÇÃO: Chamar a função get_chamados com o novo parâmetro date_filter_type
+    todos_chamados_df = get_chamados(
+        data_inicio=data_inicio_str, 
+        data_fim=data_fim_str, 
+        area_id=1,
+        date_filter_type='resolucao' # <<< AQUI ESTÁ A CORREÇÃO
+    )
+    
+    # Busca a lista de serviços para o dropdown (como antes)
+    servicos_para_filtro = [ "1-SISTEMAS (ERP Oracle)", "2-SISTEMAS (Google)", "3-SISTEMAS ( BI )", "4-SISTEMA (Outros Softwares/Aplicativos)", "5-INFRA (Hardware/Equipamentos)", "6-INFRA (Conectividade/Rede)", "7-INFRA (Banco de dados)", "8-INFRA (Telefonia/Rádio)"]
+    lista_servicos_template = [{'ds_servico': nome} for nome in servicos_para_filtro]
+    
+    # 4. Aplicar Filtros de Interface (como antes)
+    df_filtrado = todos_chamados_df.copy()
+    if servico_selecionado != 'todos':
+        df_filtrado = df_filtrado[df_filtrado['SERVICO'] == servico_selecionado]
+    if tipo_chamado_selecionado == 'incidente':
+        df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE]
+    elif tipo_chamado_selecionado == 'requisicao':
+        df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == TIPO_CHAMADO_REQUISICAO_SERVICO]
+
+    # 5. O restante da lógica para calcular KPIs e Gráfico permanece o mesmo
+    kpi_total_com_sla = 0; kpi_dentro_sla = 0; kpi_fora_sla = 0
+    kpi_taxa_sucesso_sla_str = "0.0%"; kpi_tempo_medio_resolucao_str = "N/A"
+    sla_por_grupo_graph_html = None
+    
+    required_cols_sla = ['STATUS', 'GRUPO', 'TEMPO_RESOLUCAO_DECORRIDO', 'PRAZO_HORAS']
+    if not df_filtrado.empty and all(col in df_filtrado.columns for col in required_cols_sla):
+        df_calculo_sla = df_filtrado.copy()
+        df_calculo_sla['PRAZO_MINUTOS'] = pd.to_timedelta(df_calculo_sla['PRAZO_HORAS'].astype(str), errors='coerce').dt.total_seconds() / 60
+        df_calculo_sla['TEMPO_RESOL_MIN'] = pd.to_numeric(df_calculo_sla['TEMPO_RESOLUCAO_DECORRIDO'], errors='coerce')
+        df_base_sla = df_calculo_sla[(df_calculo_sla['STATUS'].isin(STATUS_FECHADO_LISTA)) & (df_calculo_sla['PRAZO_MINUTOS'].notna()) & (df_calculo_sla['PRAZO_MINUTOS'] > 0) & (df_calculo_sla['TEMPO_RESOL_MIN'].notna())].copy()
+        
+        if not df_base_sla.empty:
+            kpi_total_com_sla = len(df_base_sla)
+            kpi_dentro_sla = len(df_base_sla[df_base_sla['TEMPO_RESOL_MIN'] <= df_base_sla['PRAZO_MINUTOS']])
+            kpi_fora_sla = kpi_total_com_sla - kpi_dentro_sla
+            if kpi_total_com_sla > 0: taxa_sucesso = (kpi_dentro_sla / kpi_total_com_sla) * 100; kpi_taxa_sucesso_sla_str = f"{taxa_sucesso:.1f}%"
+            media_tempo_resol = df_base_sla['TEMPO_RESOL_MIN'].mean()
+            if pd.notna(media_tempo_resol): total_minutos_int = int(round(media_tempo_resol)); horas = total_minutos_int // 60; minutos = total_minutos_int % 60; kpi_tempo_medio_resolucao_str = f"{horas:02d}:{minutos:02d}h"
+            if 'GRUPO' in df_base_sla.columns:
+                df_base_sla['DENTRO_SLA'] = df_base_sla['TEMPO_RESOL_MIN'] <= df_base_sla['PRAZO_MINUTOS']; sla_por_grupo = df_base_sla.groupby('GRUPO')['DENTRO_SLA'].value_counts().unstack(fill_value=0)
+                if True not in sla_por_grupo.columns: sla_por_grupo[True] = 0
+                if False not in sla_por_grupo.columns: sla_por_grupo[False] = 0
+                sla_por_grupo.columns = ['Fora do SLA', 'Dentro do SLA']; sla_por_grupo = sla_por_grupo[['Dentro do SLA', 'Fora do SLA']]; sla_por_grupo = sla_por_grupo[(sla_por_grupo['Dentro do SLA'] > 0) | (sla_por_grupo['Fora do SLA'] > 0)].nlargest(10, 'Fora do SLA')
+                if not sla_por_grupo.empty:
+                    fig = px.bar(sla_por_grupo, barmode='stack', title='SLA de Resolução por Grupo de Solução (Top 10 piores)', labels={'value': 'Nº de Chamados', 'GRUPO': 'Grupo de Solução'}, color_discrete_map={'Dentro do SLA': 'green', 'Fora do SLA': '#dc3545'})
+                    fig.update_layout(margin=dict(l=40,r=20,t=50,b=40), height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', title_x=0.5, title_font_size=14, yaxis_title="Contagem", xaxis_title=None); fig.update_xaxes(tickangle=-45); sla_por_grupo_graph_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+    return render_template('dashboard_tv_sla.html',
+                           kpi_total_com_sla=kpi_total_com_sla,
+                           kpi_dentro_sla=kpi_dentro_sla,
+                           kpi_fora_sla=kpi_fora_sla,
+                           kpi_taxa_sucesso_sla_str=kpi_taxa_sucesso_sla_str,
+                           kpi_tempo_medio_resolucao_str=kpi_tempo_medio_resolucao_str,
+                           sla_por_grupo_graph_html=sla_por_grupo_graph_html,
+                           periodo_selecionado=periodo_selecionado,
+                           tipo_chamado_selecionado=tipo_chamado_selecionado,
+                           servico_selecionado=servico_selecionado, 
+                           lista_servicos=lista_servicos_template,
+                           data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           endpoint='dashboard_tv_sla' 
+                           )
+
+@app.route('/dashboard_tv_infra')
+def dashboard_tv_infra():
+    print("--- ROTA /dashboard_tv_infra: INÍCIO ---")
+
+    # 1. Ler os parâmetros de filtro da URL
+    periodo_selecionado = request.args.get('periodo', 'mes_atual')
+    tipo_chamado_selecionado = request.args.get('tipo_chamado', 'todos')
+    
+    # 2. Definir o período de consulta
+    hoje = date.today(); data_fim = hoje
+    if periodo_selecionado == 'mes_atual': data_inicio = hoje.replace(day=1)
+    elif periodo_selecionado == '60d': data_inicio = hoje - timedelta(days=59)
+    elif periodo_selecionado == '90d': data_inicio = hoje - timedelta(days=89)
+    elif periodo_selecionado == '6m': data_inicio = (pd.Timestamp(hoje) - pd.DateOffset(months=6)).date()
+    elif periodo_selecionado == '1y': data_inicio = (pd.Timestamp(hoje) - pd.DateOffset(years=1)).date()
+    else: data_inicio = hoje.replace(day=1)
+
+    data_inicio_str = data_inicio.strftime('%Y-%m-%d'); data_fim_str = data_fim.strftime('%Y-%m-%d')
+    print(f"Filtros Ativos -> Período de Abertura: {data_inicio_str} a {data_fim_str}, Tipo: {tipo_chamado_selecionado}")
+
+    # 3. Buscar dados
+    todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
+
+    # 4. Filtrar para os grupos de Infraestrutura
+    grupos_infra = ["N1 - Infra", "Solution - INFRA"] # AJUSTE AQUI se os nomes forem diferentes
+    df_infra_bruto = todos_chamados_df[todos_chamados_df['GRUPO'].isin(grupos_infra)].copy()
+
+    # 5. Aplicar filtro de tipo de chamado
+    df_infra_filtrado = df_infra_bruto.copy()
+    if tipo_chamado_selecionado == 'incidente':
+        df_infra_filtrado = df_infra_bruto[df_infra_bruto['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE]
+    elif tipo_chamado_selecionado == 'requisicao':
+        df_infra_filtrado = df_infra_bruto[df_infra_bruto['TIPOCHAMADO'] == TIPO_CHAMADO_REQUISICAO_SERVICO]
+    print(f"Total de chamados de Infra para análise: {len(df_infra_filtrado)}")
+
+    # 6. Inicializar KPIs e Gráfico
+    kpis = { 'total_criados': len(df_infra_filtrado), 'fechados': 0, 'em_atendimento': 0, 'aguardando_solicitante': 0, 'contestados': 0, 'abertos_sem_atendente': 0, 'aging_medio_ativos_str': "N/A", 'tempo_medio_resol_str': "N/A" }
+    pizza_status_html = None
+
+    if not df_infra_filtrado.empty:
+        # Calcular KPIs
+        df_ativos = df_infra_filtrado[~df_infra_filtrado['STATUS'].isin(STATUS_FECHADO_LISTA) & (df_infra_filtrado['STATUS'] != STATUS_REPROVADO)].copy()
+        df_fechados = df_infra_filtrado[df_infra_filtrado['STATUS'].isin(STATUS_FECHADO_LISTA)].copy()
+        
+        kpis['fechados'] = len(df_fechados)
+        kpis['em_atendimento'] = len(df_ativos[df_ativos['STATUS'].isin(STATUS_EM_ATENDIMENTO_LISTA)])
+        kpis['aguardando_solicitante'] = len(df_ativos[df_ativos['STATUS'] == STATUS_AGUARDANDO_SOLICITANTE])
+        kpis['contestados'] = len(df_ativos[df_ativos['STATUS'] == STATUS_CONTESTADO])
+        kpis['abertos_sem_atendente'] = len(df_ativos[df_ativos['ATENDENTE'].isna() | (df_ativos['ATENDENTE'] == '')])
+
+        # Calcular Aging Médio
+        if not df_ativos.empty:
+            temp_aging = df_ativos.copy(); temp_aging.loc[:, 'HORA_ABERTURA_TD_TEMP'] = pd.to_timedelta(temp_aging['HORA_ABERTURA_RAW'].astype(str), errors='coerce'); temp_aging.loc[:, 'TIMESTAMP_ABERTURA'] = pd.to_datetime(temp_aging['DT_ABERTURA_RAW']) + temp_aging['HORA_ABERTURA_TD_TEMP']; temp_aging.dropna(subset=['TIMESTAMP_ABERTURA'], inplace=True)
+            if not temp_aging.empty: agora = datetime.now(); temp_aging.loc[:, 'IDADE_CHAMADO_TD'] = agora - temp_aging['TIMESTAMP_ABERTURA']; media_idade_td = temp_aging['IDADE_CHAMADO_TD'].mean()
+            if pd.notna(media_idade_td): dias = media_idade_td.days; horas = media_idade_td.seconds // 3600; kpis['aging_medio_ativos_str'] = f"{dias}d {horas}h"
+
+        # Calcular Tempo Médio de Resolução
+        if not df_fechados.empty and 'TEMPO_RESOLUCAO_DECORRIDO' in df_fechados.columns:
+            media_tempo_resol = pd.to_numeric(df_fechados['TEMPO_RESOLUCAO_DECORRIDO'], errors='coerce').mean()
+            if pd.notna(media_tempo_resol): total_minutos_int = int(round(media_tempo_resol)); horas = total_minutos_int // 60; minutos = total_minutos_int % 60; kpis['tempo_medio_resol_str'] = f"{horas:02d}:{minutos:02d}h"
+
+        # Gerar Gráfico de Pizza por Status
+        status_counts = df_infra_filtrado['STATUS'].value_counts().reset_index()
+        status_counts.columns = ['Status', 'Contagem']
+        if not status_counts.empty:
+            fig = px.pie(status_counts, names='Status', values='Contagem', title='Distribuição por Status', hole=0.3, color_discrete_sequence=px.colors.qualitative.Pastel)
+            fig.update_layout(margin=dict(l=10, r=10, t=40, b=10), height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5))
+            pizza_status_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+
+    return render_template('dashboard_tv_infra.html',
+                           kpis=kpis,
+                           pizza_status_html=pizza_status_html,
+                           periodo_selecionado=periodo_selecionado,
+                           tipo_chamado_selecionado=tipo_chamado_selecionado,
+                           data_inicio_link=data_inicio_str,
+                           data_fim_link=data_fim_str,
+                           grupos_infra_para_link=grupos_infra,
+                           STATUS_FECHADO_LISTA_PARA_LINK=STATUS_FECHADO_LISTA,
+                           STATUS_EM_ATENDIMENTO_LISTA_PARA_LINK=STATUS_EM_ATENDIMENTO_LISTA,
+                           STATUS_AGUARDANDO_SOLICITANTE_STR=STATUS_AGUARDANDO_SOLICITANTE,
+                           STATUS_CONTESTADO_STR=STATUS_CONTESTADO,
+                           data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           endpoint='dashboard_tv_infra'
                            )
 
 # --- ROTA EXPORTAR EXCEL ---
