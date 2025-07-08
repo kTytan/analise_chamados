@@ -1,4 +1,4 @@
-Documentação do Projeto: Sistema de Dashboards de Chamados
+**Documentação do Projeto: Sistema de Dashboards de Chamados**
 1. Visão Geral do Projeto
 Este projeto é uma aplicação web construída com Flask e Pandas para analisar e visualizar dados de chamados de um sistema de help desk. A aplicação se conecta a um banco de dados MySQL, processa os dados e os exibe em várias páginas e dashboards interativos, incluindo:
 
@@ -24,7 +24,7 @@ O projeto segue uma estrutura padrão de aplicações Flask:
 |-- venv/                  # Ambiente virtual do Python
 |
 |-- static/                # Arquivos estáticos (CSS, JS, Imagens - se houver)
-|   `-- css/
+|   -- css/
 |
 |-- templates/             # Arquivos HTML do Jinja2
 |   |-- index.html         # Página inicial (portal de dashboards)
@@ -34,12 +34,12 @@ O projeto segue uma estrutura padrão de aplicações Flask:
 |   |-- dashboard_tv_gerencial.html
 |   |-- dashboard_tv_sla.html
 |   |-- _export_button.html  # Componente reutilizável para o botão de exportar
-|   `-- _pagination_controls.html # Componente reutilizável para a paginação
+|   -- _pagination_controls.html # Componente reutilizável para a paginação
 |
 |-- app.py                 # Arquivo principal da aplicação Flask (rotas e lógica principal)
 |-- data_handler.py        # Módulo para acesso e busca de dados no banco de dados
 |-- config.py              # Arquivo de configuração (ex: credenciais do banco de dados)
-`-- requirements.txt       # Lista de dependências Python do projeto
+-- requirements.txt       # Lista de dependências Python do projeto
 3. Componentes Principais
 3.1. config.py (Configuração)
 Este arquivo (que você deve criar) armazena as credenciais de conexão com o banco de dados de forma segura, separadas do código principal.
