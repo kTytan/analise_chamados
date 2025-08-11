@@ -6,7 +6,7 @@
     <meta http-equiv="refresh" content="900"> 
     <title>Monitoramento de SLA de Resolução</title>
     <style>
-        /* CSS com Tema Escuro (como na sua última versão) */
+        /* CSS com Tema Escuro - Padrão das Telas de TV */
         html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e1e; color: #f0f0f0; }
         body { display: flex; flex-direction: column; }
         .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; z-index: 10; }
@@ -18,16 +18,16 @@
         .tv-main-container-sla { padding: 15px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 20px; }
         
         .filters-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px; background-color: #282828; padding: 15px; border-radius: 8px; }
-        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
         .filter-group label { font-weight: 500; color: #ccc; font-size: 0.9em; text-align: left; }
-        .filter-group select, .filters-container button { background-color: #383838; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 5px; font-size: 1em; }
-        .filters-container button { background-color: #00bfa5; color: #1e1e1e; font-weight: bold; cursor: pointer; border:none; }
+        .filter-group input, .filter-group select { background-color: #383838; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 5px; font-size: 1em; }
+        .filters-container button { background-color: #00bfa5; color: #1e1e1e; font-weight: bold; cursor: pointer; border:none; padding: 8px 20px; }
         .filters-container button:hover { background-color: #00d9b2; }
-
+        
         .kpi-section, .chart-section { padding: 15px; background-color: #282828; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
         .kpi-section h2, .chart-section h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #404040; font-size: 1.5em; }
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: stretch; }
-        .kpi-card { background-color: #333333; padding: 15px 10px; border-radius: 5px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 110px; overflow: hidden; box-sizing: border-box; }
+        .kpi-card { background-color: #333333; padding: 15px 10px; border-radius: 5px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 110px; box-sizing: border-box; }
         .kpi-card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.2s ease, box-shadow 0.2s ease; }
         .kpi-card-link:hover .kpi-card { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
         .kpi-card .value { font-size: 3em; font-weight: 600; color: #00d9b2; margin-bottom: 5px; line-height: 1.1; }
@@ -55,18 +55,16 @@
     <div class="tv-main-container-sla">
         <form method="GET" action="{{ url_for('dashboard_tv_sla') }}" class="filters-container">
             <div class="filter-group">
-                <label for="periodo">Período</label>
-                <select name="periodo" id="periodo" onchange="this.form.submit()">
-                    <option value="mes_atual" {% if periodo_selecionado == 'mes_atual' %}selected{% endif %}>Mês Atual</option>
-                    <option value="60d" {% if periodo_selecionado == '60d' %}selected{% endif %}>Últimos 60 Dias</option>
-                    <option value="90d" {% if periodo_selecionado == '90d' %}selected{% endif %}>Últimos 90 Dias</option>
-                    <option value="6m" {% if periodo_selecionado == '6m' %}selected{% endif %}>Últimos 6 Meses</option>
-                    <option value="1y" {% if periodo_selecionado == '1y' %}selected{% endif %}>Último 1 Ano</option>
-                </select>
+                <label for="data_inicio">Data Início:</label>
+                <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
+            </div>
+            <div class="filter-group">
+                <label for="data_fim">Data Fim:</label>
+                <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
             </div>
              <div class="filter-group">
                 <label for="tipo_chamado">Tipo de Chamado</label>
-                <select name="tipo_chamado" id="tipo_chamado" onchange="this.form.submit()">
+                <select name="tipo_chamado" id="tipo_chamado">
                     <option value="todos" {% if tipo_chamado_selecionado == 'todos' %}selected{% endif %}>Todos os Tipos</option>
                     <option value="incidente" {% if tipo_chamado_selecionado == 'incidente' %}selected{% endif %}>Incidente</option>
                     <option value="requisicao" {% if tipo_chamado_selecionado == 'requisicao' %}selected{% endif %}>Requisição</option>
@@ -74,52 +72,47 @@
             </div>
              <div class="filter-group">
                 <label for="servico">Serviço</label>
-                <select name="servico" id="servico" onchange="this.form.submit()">
+                <select name="servico" id="servico">
                     <option value="todos" {% if servico_selecionado == 'todos' %}selected{% endif %}>Todos os Serviços</option>
                     {% for s in lista_servicos %}
                     <option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>{{ s.ds_servico }}</option>
                     {% endfor %}
                 </select>
             </div>
+             <div class="filter-group">
+                <label for="filial">Filial</label>
+                <select name="filial" id="filial">
+                    <option value="todos" {% if filial_selecionada == 'todos' %}selected{% endif %}>Todas Filiais</option>
+                    <option value="portobello_corporativo" {% if filial_selecionada == 'portobello_corporativo' %}selected{% endif %}>Portobello (Corp)</option>
+                    <option value="Portobello Shop" {% if filial_selecionada == 'Portobello Shop' %}selected{% endif %}>Portobello Shop</option>
+                    <option value="Pointer" {% if filial_selecionada == 'Pointer' %}selected{% endif %}>Pointer</option>
+                    <option value="Portobello America" {% if filial_selecionada == 'Portobello America' %}selected{% endif %}>Portobello America</option>
+                </select>
+            </div>
+            <div class="filter-group" style="justify-content: flex-end;">
+                 <button type="submit">Filtrar</button>
+            </div>
         </form>
 
         <section class="kpi-section">
             <h2>Visão Geral do SLA (Filtros Aplicados)</h2>
             <div class="kpi-grid">
-                
-                <a href="{{ url_for('analise_detalhada', 
-                                    date_type='resolucao', 
-                                    data_inicio=data_inicio_link, 
-                                    data_fim=data_fim_link, 
-                                    servico=(servico_selecionado if servico_selecionado != 'todos' else ''), 
-                                    tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), 
-                                    status_chamado=STATUS_FECHADO_LISTA_PARA_LINK) }}" 
-                   target="_blank" class="kpi-card-link" title="Ver lista de chamados fechados com SLA definido no período e filtros.">
-                    <div class="kpi-card">
-                        <div class="value">{{ kpi_total_com_sla }}</div>
-                        <div class="label">Total Fechados com SLA</div>
-                    </div>
-                </a>
-
-                <a href="{{ url_for('analise_detalhada', date_type='resolucao', data_inicio=data_inicio_link, data_fim=data_fim_link, servico=(servico_selecionado if servico_selecionado != 'todos' else ''), tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), status_chamado=STATUS_FECHADO_LISTA_PARA_LINK) }}" target="_blank" class="kpi-card-link" title="O drill-down mostra todos os fechados. A condição 'Dentro do SLA' não é um filtro na tela de detalhes.">
-                    <div class="kpi-card">
-                        <div class="value success">{{ kpi_dentro_sla }}</div>
-                        <div class="label">Dentro do SLA</div>
-                    </div>
-                </a>
-
-                 <a href="{{ url_for('analise_detalhada', date_type='resolucao', data_inicio=data_inicio_link, data_fim=data_fim_link, servico=(servico_selecionado if servico_selecionado != 'todos' else ''), tipo_chamado=(tipo_chamado_selecionado if tipo_chamado_selecionado != 'todos' else ''), status_chamado=STATUS_FECHADO_LISTA_PARA_LINK) }}" target="_blank" class="kpi-card-link" title="O drill-down mostra todos os fechados. A condição 'Fora do SLA' não é um filtro na tela de detalhes.">
-                    <div class="kpi-card">
-                        <div class="value danger">{{ kpi_fora_sla }}</div>
-                        <div class="label">Fora do SLA</div>
-                    </div>
-                 </a>
-
+                <div class="kpi-card">
+                    <div class="value">{{ kpi_total_com_sla }}</div>
+                    <div class="label">Total Fechados com SLA</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="value success">{{ kpi_dentro_sla }}</div>
+                    <div class="label">Dentro do SLA</div>
+                </div>
+                 <div class="kpi-card">
+                    <div class="value danger">{{ kpi_fora_sla }}</div>
+                    <div class="label">Fora do SLA</div>
+                </div>
                 <div class="kpi-card">
                     <div class="value {{ 'success' if kpi_taxa_sucesso_sla_str.split('%')[0]|float >= 95 else 'danger' }}">{{ kpi_taxa_sucesso_sla_str }}</div>
                     <div class="label">Taxa de Sucesso</div>
                 </div>
-
                  <div class="kpi-card">
                     <div class="value">{{ kpi_tempo_medio_resolucao_str }}</div>
                     <div class="label">T. Médio de Resolução</div>

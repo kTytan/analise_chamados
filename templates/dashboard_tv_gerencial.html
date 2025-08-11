@@ -3,96 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="900"> 
+    <meta http-equiv="refresh" content="900">
     <title>Monitoramento Gerencial Oracle (Histórico)</title>
     <style>
-        /* Estilos com Tema Escuro */
-        html, body { 
-            height: 100%; width: 100%; margin: 0; padding: 0; 
-            overflow: hidden; 
-            font-family: 'Segoe UI', Arial, sans-serif; 
-            background-color: #1e1e1e; 
-            color: #f0f0f0; 
+        :root {
+            --background: #1e1e1e;
+            --foreground: #f0f0f0;
+            --card-bg: #2c2c2c;
+            --accent: #00e676;
+            --accent-secondary: #76d7c4;
+            --hover: #4a6fa5;
         }
-        body { 
-            display: flex; 
-            flex-direction: column; 
-        }
-        .header-tv { 
-            background-color: #0d0d0d; color: white; padding: 8px 15px; 
-            text-align: center; font-size: 1.8em; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.6); 
-            flex-shrink: 0; z-index: 10; 
-        }
-        .header-tv .title { display: block; font-weight: 500; }
-        .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
-        
-        nav { 
-            background-color: #0d0d0d; padding: 10px 0; 
-            margin-bottom: 10px; text-align: center; 
-            border-radius: 4px; flex-shrink: 0;
-        }
-        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s ease;}
-        nav a:hover, nav a.active { text-decoration: underline; background-color: #4a6fa5; }
 
-        .tv-main-container-gerencial { 
-            padding: 15px; 
-            flex-grow: 1; 
-            overflow-y: auto; 
-            overflow-x: hidden;
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
+        html, body {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--background);
+            color: var(--foreground);
+            overflow: hidden;
         }
-        .kpi-section-gerencial, .chart-section-gerencial, .dbp-kpi-section { 
-            padding: 15px; background-color: #282828; 
-            border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-        }
-        .kpi-section-gerencial h2, .chart-section-gerencial h2, .dbp-kpi-section h2 { 
-            color: #00e676; text-align: center; margin-top: 0; 
-            margin-bottom: 20px; padding-bottom: 10px; 
-            border-bottom: 1px solid #404040; font-size: 1.5em; 
-        }
-        .dbp-kpi-section h3 {
-            color: #76d7c4; text-align: left; font-size: 1.3em; 
-            margin-top: 20px; margin-bottom: 15px; padding-bottom: 8px;
-            border-bottom: 1px dashed #4f4f4f;
-        }
-        .dbp-kpi-section h3:first-of-type { margin-top: 0; }
 
-        .kpi-grid-gerencial, .dbp-kpi-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
-            gap: 15px; 
-            align-items: stretch; 
+        body {
+            display: flex;
+            flex-direction: column;
         }
-        .kpi-card { 
-            background-color: #333333; padding: 15px 10px; border-radius: 5px; 
-            box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); 
-            text-align: center; display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; 
-            min-height: 110px; overflow: hidden; box-sizing: border-box; 
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .kpi-card .value { font-size: 3em; font-weight: 600; color: #00d9b2; margin-bottom: 5px; line-height: 1.1; }
-        .kpi-card .label { font-size: 1.3em; color: #a0a0a0; line-height: 1.2; word-wrap: break-word; }
-        .kpi-card-link { text-decoration: none; color: inherit; display: block; height: 100%; } 
-        .kpi-card-link:hover .kpi-card { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
 
-        .charts-row-gerencial { 
+        .header-tv {
+            background: #0d0d0d;
+            padding: 12px 20px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+        }
+
+        .header-tv .title {
+            font-size: 2em;
+            font-weight: 600;
+        }
+
+        .header-tv .subtitle {
+            font-size: 1em;
+            color: #b0b0b0;
+        }
+
+        nav {
+            background: #121212;
+            padding: 10px 0;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 1em;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: 0.3s;
+        }
+
+        nav a.active, nav a:hover {
+            background: var(--hover);
+        }
+
+        .tv-main-container-gerencial {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+        }
+
+        section {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 1600px;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            color: var(--accent);
+            border-bottom: 1px solid #444;
+            padding-bottom: 8px;
+        }
+
+        h3 {
+            font-size: 1.3em;
+            color: var(--accent-secondary);
+            border-bottom: 1px dashed #555;
+            margin: 25px 0 15px;
+            padding-bottom: 5px;
+        }
+
+        .kpi-grid-gerencial, .dbp-kpi-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr; 
-            gap: 15px;
-            margin-top: 10px; 
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            justify-items: center;
         }
-        .chart-container-line { 
-            background-color: #333333; padding: 10px; border-radius: 5px;
-            box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3);
-            min-height: 380px; box-sizing: border-box;
-            display: flex; justify-content: center; align-items: center;
-            overflow: hidden; 
+
+        .kpi-card {
+            background: #333;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            width: 250px;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
-        .chart-container-line > div { width: 100% !important; height: 100% !important; }
+
+        .kpi-card .value {
+            font-size: 2.8em;
+            font-weight: bold;
+            color: #00d9b2;
+        }
+
+        .kpi-card .label {
+            font-size: 1.2em;
+            color: #aaa;
+            margin-top: 8px;
+            word-wrap: break-word;
+            max-width: 90%;
+        }
+
+        .kpi-card-link {
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .kpi-card-link:hover .kpi-card {
+            transform: translateY(-4px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+        }
+
+        .charts-row-gerencial {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .chart-container-line {
+            flex: 1;
+            min-width: 400px;
+            min-height: 380px;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chart-container-line > div {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        @media (max-width: 1024px) {
+            .kpi-grid-gerencial, .dbp-kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            nav a { font-size: 0.9em; padding: 6px 12px; }
+            .kpi-card .value { font-size: 2.2em; }
+            .kpi-card .label { font-size: 1em; }
+            .kpi-grid-gerencial, .dbp-kpi-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>

@@ -1,9 +1,14 @@
 # app.py
 from flask import Flask, render_template, request, url_for, Response
 from data_handler import (
-    get_chamados, get_distinct_servicos, get_distinct_tipos_chamado,
-    get_distinct_grupos_solucao, get_distinct_unidades, get_distinct_status_chamado
+    get_chamados, 
+    get_distinct_servicos, 
+    get_distinct_tipos_chamado,
+    get_distinct_grupos_solucao, 
+    get_distinct_unidades, 
+    get_distinct_status_chamado
 )
+
 from datetime import date, timedelta, datetime, time 
 import calendar
 import pandas as pd
@@ -20,7 +25,7 @@ TOP_N_DEPTOS_ORACLE_TV = 10
 
 SERVICO_ORACLE = "1-SISTEMAS (ERP Oracle)" 
 GRUPO_SUSTENTACAO_SEVEN = "Sustentação - SEVEN"
-GRUPO_SUSTENTACAO_MMBIT = "Solution - MMBIT" 
+GRUPO_SOLUTION_MMBIT = "Solution - MMBIT" 
 GRUPO_AGUARDANDO_AVALIACAO = "Aguardando Avaliação"
 GRUPO_DBP_PB_AMERICA = "DBP - PB América"
 GRUPO_DBP_SOLUTION = "DBP - Solution"
@@ -30,7 +35,14 @@ GRUPO_DBP_CYBER_PRO = "DBP - Cyber Pro"
 GRUPO_DBP_EVOLUTION = "DBP - Evolution"
 GRUPO_DBP_ANALYTICS = "DBP - Analytics"
 GRUPO_DBP_OMNI = "DBP - Omni"
+GRUPO_SOLUTION_PDH = "Solution - PDH"  
 PRIORIDADES_CRITICAS_ALTAS = ['Crítica', 'Alta'] 
+
+LISTA_GRUPOS_FORNECEDORES = [
+    GRUPO_SUSTENTACAO_SEVEN,
+    GRUPO_SOLUTION_MMBIT,
+    GRUPO_SOLUTION_PDH
+]
 
 TIPO_CHAMADO_INCIDENTE = "Incidente" 
 TIPO_CHAMADO_REQUISICAO_SERVICO = "Requisição de Serviço" 
@@ -337,68 +349,67 @@ def dashboard_tv_oracle():
 # --- ROTA DASHBOARD TV FORNECEDORES ---
 @app.route('/dashboard_tv_fornecedores')
 def dashboard_tv_fornecedores():
-    print("--- ROTA /dashboard_tv_fornecedores: INÍCIO (Histórico, Foco Não Fechados) ---")
+    print("--- ROTA /dashboard_tv_fornecedores: INÍCIO (AGING CONSOLIDADO) ---")
     
+    # 1. Buscar todos os chamados (período histórico amplo)
     hoje = date.today()
     data_inicio_str = date(2000, 1, 1).strftime('%Y-%m-%d')
     data_fim_str = hoje.strftime('%Y-%m-%d')
+    todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
     
-    print(f"Período de busca para TV Fornecedores (Histórico): {data_inicio_str} a {data_fim_str}")
-    
-    todos_chamados_historico_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
-    print(f"1. TV Fornecedores - Total chamados (histórico): {len(todos_chamados_historico_df)}")
+    # 2. Inicializar variáveis
+    kpis_aging = {}
+    chamados_detalhes_df = pd.DataFrame()
+    media_vida_dias = 0
+    total_ativos = 0
 
-    kpi_keys_fornecedores = ['total_em_aberto', 'em_atendimento', 'aguardando_solicitante', 'contestado', 'sla_estourado', 'abertos_7_dias_mais']
-    dados_seven_incidentes = {key: 0 for key in kpi_keys_fornecedores}; dados_seven_incidentes['pizza_html'] = None
-    dados_seven_outros = {key: 0 for key in kpi_keys_fornecedores}; dados_seven_outros['pizza_html'] = None
-    dados_mmbit_incidentes = {key: 0 for key in kpi_keys_fornecedores}; dados_mmbit_incidentes['pizza_html'] = None
-    dados_mmbit_outros = {key: 0 for key in kpi_keys_fornecedores}; dados_mmbit_outros['pizza_html'] = None
-    primeiro_grafico_renderizado_fornecedores = False
+    if not todos_chamados_df.empty:
+        # 3. Filtrar para os 3 grupos de fornecedores
+        grupos_fornecedores = [GRUPO_SUSTENTACAO_SEVEN, GRUPO_SOLUTION_MMBIT, GRUPO_SOLUTION_PDH]
+        df_fornecedores_bruto = todos_chamados_df[todos_chamados_df['GRUPO'].isin(grupos_fornecedores)].copy()
 
-    status_total_em_aberto_lista = STATUS_EM_ATENDIMENTO_LISTA + [STATUS_AGUARDANDO_SOLICITANTE, STATUS_CONTESTADO]
-
-    if not todos_chamados_historico_df.empty and \
-       all(col in todos_chamados_historico_df.columns for col in ['SERVICO', 'GRUPO', 'TIPOCHAMADO', 'STATUS', 'DT_ABERTURA_RAW', 'HORA_ABERTURA_RAW', 'PRAZO_HORAS', 'sla_atendimento_tempo_decorrido', 'sla_atendimento_tempo_definido']):
-
-        seven_oracle_df = todos_chamados_historico_df[(todos_chamados_historico_df['SERVICO'] == SERVICO_ORACLE) & (todos_chamados_historico_df['GRUPO'] == GRUPO_SUSTENTACAO_SEVEN)].copy()
-        if not seven_oracle_df.empty:
-            seven_incidentes_df = seven_oracle_df[seven_oracle_df['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE].copy()
-            kpis, pizza_html = gerar_kpis_e_pizza(seven_incidentes_df, None, plotly_js_config='cdn' if not primeiro_grafico_renderizado_fornecedores else False) # CHAMADA CORRETA
-            dados_seven_incidentes = {**kpis, 'pizza_html': pizza_html}
-            if pizza_html and not primeiro_grafico_renderizado_fornecedores: primeiro_grafico_renderizado_fornecedores = True
-
-            seven_outros_df = seven_oracle_df[seven_oracle_df['TIPOCHAMADO'] != TIPO_CHAMADO_INCIDENTE].copy()
-            kpis, pizza_html = gerar_kpis_e_pizza(seven_outros_df, None, plotly_js_config=not primeiro_grafico_renderizado_fornecedores) # CHAMADA CORRETA
-            dados_seven_outros = {**kpis, 'pizza_html': pizza_html}
-            if pizza_html and not primeiro_grafico_renderizado_fornecedores: primeiro_grafico_renderizado_fornecedores = True
+        # 4. Filtrar para chamados ATIVOS (não fechados/reprovados)
+        chamados_ativos_df = df_fornecedores_bruto[
+            (~df_fornecedores_bruto['STATUS'].isin(STATUS_FECHADO_LISTA)) &
+            (df_fornecedores_bruto['STATUS'] != STATUS_REPROVADO)
+        ].copy()
         
-        mmbit_geral_df = todos_chamados_historico_df[todos_chamados_historico_df['GRUPO'] == GRUPO_SUSTENTACAO_MMBIT].copy()
-        if not mmbit_geral_df.empty:
-            mmbit_incidentes_df = mmbit_geral_df[mmbit_geral_df['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE].copy()
-            kpis, pizza_html = gerar_kpis_e_pizza(mmbit_incidentes_df, None, plotly_js_config=not primeiro_grafico_renderizado_fornecedores) # CHAMADA CORRETA
-            dados_mmbit_incidentes = {**kpis, 'pizza_html': pizza_html}
-            if pizza_html and not primeiro_grafico_renderizado_fornecedores: primeiro_grafico_renderizado_fornecedores = True
+        print(f"Total de chamados ATIVOS para os 3 grupos de fornecedores: {len(chamados_ativos_df)}")
 
-            mmbit_outros_df = mmbit_geral_df[mmbit_geral_df['TIPOCHAMADO'] != TIPO_CHAMADO_INCIDENTE].copy()
-            kpis, pizza_html = gerar_kpis_e_pizza(mmbit_outros_df, None, plotly_js_config=not primeiro_grafico_renderizado_fornecedores) # CHAMADA CORRETA
-            dados_mmbit_outros = {**kpis, 'pizza_html': pizza_html}
-    else:
-        print("ALERTA TV Fornecedores: DataFrame histórico vazio ou faltam colunas essenciais.")
-        
+        if not chamados_ativos_df.empty:
+            # 5. Calcular a idade de cada chamado ativo
+            agora = datetime.now()
+            chamados_ativos_df.loc[:, 'DT_ABERTURA_RAW'] = pd.to_datetime(chamados_ativos_df['DT_ABERTURA_RAW'], errors='coerce')
+            chamados_ativos_df.dropna(subset=['DT_ABERTURA_RAW'], inplace=True)
+            
+            chamados_ativos_df.loc[:, 'IDADE_DIAS'] = (agora - chamados_ativos_df['DT_ABERTURA_RAW']).dt.days
+
+            # 6. Calcular os KPIs por faixa de idade sobre o DataFrame consolidado
+            kpis_aging = {
+                '0 dias': len(chamados_ativos_df[chamados_ativos_df['IDADE_DIAS'] == 0]),
+                '1 a 7 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 1) & (chamados_ativos_df['IDADE_DIAS'] <= 7)]),
+                '8 a 14 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 8) & (chamados_ativos_df['IDADE_DIAS'] <= 14)]),
+                '15 a 24 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 15) & (chamados_ativos_df['IDADE_DIAS'] <= 24)]),
+                '25 a 50 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 25) & (chamados_ativos_df['IDADE_DIAS'] <= 50)]),
+                '51 a 100 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 51) & (chamados_ativos_df['IDADE_DIAS'] <= 100)]),
+                '101 a 200 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 101) & (chamados_ativos_df['IDADE_DIAS'] <= 200)]),
+                '> 200 dias': len(chamados_ativos_df[chamados_ativos_df['IDADE_DIAS'] > 200]),
+            }
+
+            # 7. Calcular KPIs de Total e Média de Vida
+            total_ativos = len(chamados_ativos_df)
+            media_vida_dias = round(chamados_ativos_df['IDADE_DIAS'].mean()) if total_ativos > 0 else 0
+            
+            # Preparar o DataFrame para a tabela de detalhes
+            chamados_detalhes_df = chamados_ativos_df.copy()
+            chamados_detalhes_df['DT_ABERTURA_FORMATADA'] = chamados_detalhes_df['DT_ABERTURA_RAW'].dt.strftime('%d/%m/%Y')
+            
     return render_template('dashboard_tv_fornecedores.html',
+                           kpis_aging=kpis_aging,
+                           total_ativos=total_ativos,
+                           media_vida_dias=media_vida_dias,
+                           chamados_detalhes=chamados_detalhes_df,
                            data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
-                           dados_seven_incidentes=dados_seven_incidentes,
-                           dados_seven_outros=dados_seven_outros,
-                           dados_mmbit_incidentes=dados_mmbit_incidentes,
-                           dados_mmbit_outros=dados_mmbit_outros,
-                           GRUPO_SUSTENTACAO_SEVEN_NOME=GRUPO_SUSTENTACAO_SEVEN,
-                           GRUPO_SUSTENTACAO_MMBIT_NOME=GRUPO_SUSTENTACAO_MMBIT,
-                           STATUS_TOTAL_EM_ABERTO_LISTA=status_total_em_aberto_lista,
-                           data_inicio_link=data_inicio_str, 
-                           data_fim_link=data_fim_str,
-                           STATUS_EM_ATENDIMENTO_LISTA_PARA_LINK=STATUS_EM_ATENDIMENTO_LISTA,
-                           STATUS_AGUARDANDO_SOLICITANTE_STR=STATUS_AGUARDANDO_SOLICITANTE,
-                           STATUS_CONTESTADO_STR=STATUS_CONTESTADO,
                            endpoint='dashboard_tv_fornecedores'
                            )
 
@@ -528,47 +539,56 @@ def dashboard_tv_gerencial():
 
 @app.route('/dashboard_tv_sla')
 def dashboard_tv_sla():
-    print("\n--- ROTA /dashboard_tv_sla: INÍCIO (FILTRO POR DATA DE RESOLUÇÃO CORRIGIDO) ---")
+    print("\n--- ROTA /dashboard_tv_sla: INÍCIO (com seletor de data customizado) ---")
     
     # 1. Ler os parâmetros de filtro da URL
-    periodo_selecionado = request.args.get('periodo', 'mes_atual')
+    data_inicio_form = request.args.get('data_inicio')
+    data_fim_form = request.args.get('data_fim')
     tipo_chamado_selecionado = request.args.get('tipo_chamado', 'todos')
     servico_selecionado = request.args.get('servico', 'todos')
+    filial_selecionada = request.args.get('filial', 'todos')
     
-    # 2. Definir o período de consulta
-    hoje = date.today(); data_fim = hoje
-    if periodo_selecionado == 'mes_atual': data_inicio = hoje.replace(day=1)
-    elif periodo_selecionado == '60d': data_inicio = hoje - timedelta(days=59)
-    elif periodo_selecionado == '90d': data_inicio = hoje - timedelta(days=89)
-    elif periodo_selecionado == '6m': data_inicio = (pd.Timestamp(hoje) - pd.DateOffset(months=6)).date()
-    elif periodo_selecionado == '1y': data_inicio = (pd.Timestamp(hoje) - pd.DateOffset(years=1)).date()
-    else: data_inicio = hoje.replace(day=1)
+    # 2. Definir o período de consulta com base nas datas do formulário
+    if data_inicio_form and data_fim_form:
+        # Usa as datas fornecidas pelo formulário/URL
+        data_inicio_str = data_inicio_form
+        data_fim_str = data_fim_form
+    else:
+        # Define "Mês Atual" como o período padrão se nenhuma data for enviada
+        hoje = date.today()
+        data_inicio_dt = hoje.replace(day=1)
+        data_inicio_str = data_inicio_dt.strftime('%Y-%m-%d')
+        data_fim_str = hoje.strftime('%Y-%m-%d')
 
-    data_inicio_str = data_inicio.strftime('%Y-%m-%d'); data_fim_str = data_fim.strftime('%Y-%m-%d')
-    print(f"Filtros Ativos -> Período de Resolução: {data_inicio_str} a {data_fim_str}, Tipo: {tipo_chamado_selecionado}, Serviço: {servico_selecionado}")
+    print(f"Filtros Ativos -> Período de Resolução: {data_inicio_str} a {data_fim_str}, Tipo: {tipo_chamado_selecionado}, Serviço: {servico_selecionado}, Filial: {filial_selecionada}")
 
-    # 3. CORREÇÃO: Chamar a função get_chamados com o novo parâmetro date_filter_type
+    # 3. Buscar dados
     todos_chamados_df = get_chamados(
         data_inicio=data_inicio_str, 
         data_fim=data_fim_str, 
         area_id=1,
-        date_filter_type='resolucao' # <<< AQUI ESTÁ A CORREÇÃO
+        date_filter_type='resolucao'
     )
     
-    # Busca a lista de serviços para o dropdown (como antes)
+    # Lista de serviços para o dropdown (como antes)
     servicos_para_filtro = [ "1-SISTEMAS (ERP Oracle)", "2-SISTEMAS (Google)", "3-SISTEMAS ( BI )", "4-SISTEMA (Outros Softwares/Aplicativos)", "5-INFRA (Hardware/Equipamentos)", "6-INFRA (Conectividade/Rede)", "7-INFRA (Banco de dados)", "8-INFRA (Telefonia/Rádio)"]
     lista_servicos_template = [{'ds_servico': nome} for nome in servicos_para_filtro]
     
-    # 4. Aplicar Filtros de Interface (como antes)
+    # 4. Aplicar Filtros em CASCATA
     df_filtrado = todos_chamados_df.copy()
     if servico_selecionado != 'todos':
         df_filtrado = df_filtrado[df_filtrado['SERVICO'] == servico_selecionado]
+    if filial_selecionada == 'portobello_corporativo':
+        lista_filiais = ['Portobello', 'Corporativo']
+        df_filtrado = df_filtrado[df_filtrado['UNIDADE'].isin(lista_filiais)]
+    elif filial_selecionada != 'todos':
+        df_filtrado = df_filtrado[df_filtrado['UNIDADE'] == filial_selecionada]
     if tipo_chamado_selecionado == 'incidente':
         df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE]
     elif tipo_chamado_selecionado == 'requisicao':
         df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == TIPO_CHAMADO_REQUISICAO_SERVICO]
 
-    # 5. O restante da lógica para calcular KPIs e Gráfico permanece o mesmo
+    # 5. Lógica de cálculo de SLA e KPIs (como na última versão funcional)
     kpi_total_com_sla = 0; kpi_dentro_sla = 0; kpi_fora_sla = 0
     kpi_taxa_sucesso_sla_str = "0.0%"; kpi_tempo_medio_resolucao_str = "N/A"
     sla_por_grupo_graph_html = None
@@ -582,13 +602,14 @@ def dashboard_tv_sla():
         
         if not df_base_sla.empty:
             kpi_total_com_sla = len(df_base_sla)
-            kpi_dentro_sla = len(df_base_sla[df_base_sla['TEMPO_RESOL_MIN'] <= df_base_sla['PRAZO_MINUTOS']])
+            df_base_sla['DENTRO_SLA_BOOL'] = df_base_sla['TEMPO_RESOL_MIN'] <= df_base_sla['PRAZO_MINUTOS']
+            kpi_dentro_sla = df_base_sla['DENTRO_SLA_BOOL'].sum()
             kpi_fora_sla = kpi_total_com_sla - kpi_dentro_sla
             if kpi_total_com_sla > 0: taxa_sucesso = (kpi_dentro_sla / kpi_total_com_sla) * 100; kpi_taxa_sucesso_sla_str = f"{taxa_sucesso:.1f}%"
             media_tempo_resol = df_base_sla['TEMPO_RESOL_MIN'].mean()
             if pd.notna(media_tempo_resol): total_minutos_int = int(round(media_tempo_resol)); horas = total_minutos_int // 60; minutos = total_minutos_int % 60; kpi_tempo_medio_resolucao_str = f"{horas:02d}:{minutos:02d}h"
             if 'GRUPO' in df_base_sla.columns:
-                df_base_sla['DENTRO_SLA'] = df_base_sla['TEMPO_RESOL_MIN'] <= df_base_sla['PRAZO_MINUTOS']; sla_por_grupo = df_base_sla.groupby('GRUPO')['DENTRO_SLA'].value_counts().unstack(fill_value=0)
+                sla_por_grupo = df_base_sla.groupby('GRUPO')['DENTRO_SLA_BOOL'].value_counts().unstack(fill_value=0)
                 if True not in sla_por_grupo.columns: sla_por_grupo[True] = 0
                 if False not in sla_por_grupo.columns: sla_por_grupo[False] = 0
                 sla_por_grupo.columns = ['Fora do SLA', 'Dentro do SLA']; sla_por_grupo = sla_por_grupo[['Dentro do SLA', 'Fora do SLA']]; sla_por_grupo = sla_por_grupo[(sla_por_grupo['Dentro do SLA'] > 0) | (sla_por_grupo['Fora do SLA'] > 0)].nlargest(10, 'Fora do SLA')
@@ -603,10 +624,17 @@ def dashboard_tv_sla():
                            kpi_taxa_sucesso_sla_str=kpi_taxa_sucesso_sla_str,
                            kpi_tempo_medio_resolucao_str=kpi_tempo_medio_resolucao_str,
                            sla_por_grupo_graph_html=sla_por_grupo_graph_html,
-                           periodo_selecionado=periodo_selecionado,
+                           # Passando as variáveis para preencher os filtros
+                           data_inicio=data_inicio_str, 
+                           data_fim=data_fim_str,
                            tipo_chamado_selecionado=tipo_chamado_selecionado,
                            servico_selecionado=servico_selecionado, 
+                           filial_selecionada=filial_selecionada, 
                            lista_servicos=lista_servicos_template,
+                           # Passando variáveis para os links de drill-down
+                           data_inicio_link=data_inicio_str,
+                           data_fim_link=data_fim_str,
+                           STATUS_FECHADO_LISTA_PARA_LINK=STATUS_FECHADO_LISTA,
                            data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
                            endpoint='dashboard_tv_sla' 
                            )
