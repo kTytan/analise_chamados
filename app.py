@@ -36,7 +36,31 @@ GRUPO_DBP_EVOLUTION = "DBP - Evolution"
 GRUPO_DBP_ANALYTICS = "DBP - Analytics"
 GRUPO_DBP_OMNI = "DBP - Omni"
 GRUPO_SOLUTION_PDH = "Solution - PDH"  
+GRUPO_SOLUTION_IMPRESSORAS = "Solution - IMPRESSSORAS"
+GRUPO_SOLUTION_COMUNICACOES = "Solution - COMUNICAÇÕES"
+GRUPO_SOLUTION_SISTEMAS = "Solution - SISTEMAS"
+GRUPO_SOLUTION_INFRA = "Solution - INFRA"
+GRUPO_N1_SISTEMAS = "N1 - Sistemas"
+GRUPO_N1_INFRA = "N1 - Infra"
 PRIORIDADES_CRITICAS_ALTAS = ['Crítica', 'Alta'] 
+
+LISTA_GRUPOS_DOC = [
+    "Solution - IMPRESSSORAS",
+    "Solution - COMUNICAÇÕES",
+    "Solution - SISTEMAS",
+    "Solution - INFRA",
+    "DBP - PB América",
+    "Aguardando Avaliação",
+    "DBP - Solution",
+    "DBP - Pointer",
+    "DBP - PB Shop",
+    "DBP - Cyber Pro",
+    "DBP - Evolution",
+    "DBP - Analytics",
+    "DBP - Omni",
+    "N1 - Sistemas",
+    "N1 - Infra"
+]
 
 LISTA_GRUPOS_FORNECEDORES = [
     GRUPO_SUSTENTACAO_SEVEN,
@@ -413,12 +437,63 @@ def dashboard_tv_fornecedores():
                            endpoint='dashboard_tv_fornecedores'
                            )
 
+@app.route('/dashboard_tv_doc')
+def dashboard_tv_doc():
+    print("--- ROTA /dashboard_tv_doc: INÍCIO (AGING VISÃO DOC) ---")
+    
+    hoje = date.today()
+    data_inicio_str = date(2000, 1, 1).strftime('%Y-%m-%d')
+    data_fim_str = hoje.strftime('%Y-%m-%d')
+    todos_chamados_df = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1)
+    
+    kpis_aging = {}
+    chamados_detalhes_df = pd.DataFrame()
+    media_vida_dias = 0
+    total_ativos = 0
 
-# app.py
-# ... (MANTENHA SUAS IMPORTAÇÕES E CONSTANTES GLOBAIS COMO ESTÃO NO SEU ARQUIVO) ...
-# LISTA_GRUPOS_DBP também deve estar definida globalmente.
+    if not todos_chamados_df.empty:
+        # Filtrar para os grupos da Visão DOC
+        df_doc_bruto = todos_chamados_df[todos_chamados_df['GRUPO'].isin(LISTA_GRUPOS_DOC)].copy()
 
-# --- ROTA DASHBOARD TV GERENCIAL (VERSÃO COMPLETA E CORRIGIDA) ---
+        # Filtrar para chamados ATIVOS (não fechados/reprovados)
+        chamados_ativos_df = df_doc_bruto[
+            (~df_doc_bruto['STATUS'].isin(STATUS_FECHADO_LISTA)) &
+            (df_doc_bruto['STATUS'] != STATUS_REPROVADO)
+        ].copy()
+        
+        print(f"Total de chamados ATIVOS para os grupos da Visão DOC: {len(chamados_ativos_df)}")
+
+        if not chamados_ativos_df.empty:
+            agora = datetime.now()
+            chamados_ativos_df.loc[:, 'DT_ABERTURA_RAW'] = pd.to_datetime(chamados_ativos_df['DT_ABERTURA_RAW'], errors='coerce')
+            chamados_ativos_df.dropna(subset=['DT_ABERTURA_RAW'], inplace=True)
+            chamados_ativos_df.loc[:, 'IDADE_DIAS'] = (agora - chamados_ativos_df['DT_ABERTURA_RAW']).dt.days
+
+            kpis_aging = {
+                '0 dias': len(chamados_ativos_df[chamados_ativos_df['IDADE_DIAS'] == 0]),
+                '1 a 7 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 1) & (chamados_ativos_df['IDADE_DIAS'] <= 7)]),
+                '8 a 14 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 8) & (chamados_ativos_df['IDADE_DIAS'] <= 14)]),
+                '15 a 24 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 15) & (chamados_ativos_df['IDADE_DIAS'] <= 24)]),
+                '25 a 50 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 25) & (chamados_ativos_df['IDADE_DIAS'] <= 50)]),
+                '51 a 100 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 51) & (chamados_ativos_df['IDADE_DIAS'] <= 100)]),
+                '101 a 200 dias': len(chamados_ativos_df[(chamados_ativos_df['IDADE_DIAS'] >= 101) & (chamados_ativos_df['IDADE_DIAS'] <= 200)]),
+                '> 200 dias': len(chamados_ativos_df[chamados_ativos_df['IDADE_DIAS'] > 200]),
+            }
+            total_ativos = len(chamados_ativos_df)
+            media_vida_dias = round(chamados_ativos_df['IDADE_DIAS'].mean()) if total_ativos > 0 else 0
+            
+            chamados_detalhes_df = chamados_ativos_df.copy()
+            chamados_detalhes_df['DT_ABERTURA_FORMATADA'] = chamados_detalhes_df['DT_ABERTURA_RAW'].dt.strftime('%d/%m/%Y')
+            
+    return render_template('dashboard_tv_doc.html',
+                           kpis_aging=kpis_aging,
+                           total_ativos=total_ativos,
+                           media_vida_dias=media_vida_dias,
+                           chamados_detalhes=chamados_detalhes_df,
+                           data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           endpoint='dashboard_tv_doc'
+                           )
+
 @app.route('/dashboard_tv_gerencial')
 def dashboard_tv_gerencial():
     print("--- ROTA /dashboard_tv_gerencial: INÍCIO ---")
@@ -723,6 +798,125 @@ def dashboard_tv_infra():
                            data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
                            endpoint='dashboard_tv_infra'
                            )
+
+@app.route('/dashboard_apresentacao')
+def dashboard_apresentacao():
+    print("--- ROTA /dashboard_apresentacao: INÍCIO ---")
+    
+    # 1. Obter parâmetros de filtro da URL
+    data_inicio_form = request.args.get('data_inicio')
+    data_fim_form = request.args.get('data_fim')
+    unidade_selecionada = request.args.get('unidade', '')
+    servico_selecionado = request.args.get('servico', '')
+    tipo_chamado_selecionado = request.args.get('tipo_chamado', '')
+
+    # 2. Definir período de datas
+    if data_inicio_form and data_fim_form:
+        data_inicio_str, data_fim_str = data_inicio_form, data_fim_form
+    else:
+        hoje = date.today()
+        data_inicio_dt = hoje - timedelta(days=29)
+        data_inicio_str, data_fim_str = data_inicio_dt.strftime('%Y-%m-%d'), hoje.strftime('%Y-%m-%d')
+    
+    # 3. Buscar dados e listas para os dropdowns
+    df_base = get_chamados(data_inicio=data_inicio_str, data_fim=data_fim_str, area_id=1, date_filter_type='abertura')
+    lista_unidades_df = get_distinct_unidades()
+    lista_servicos_df = get_distinct_servicos()
+    lista_tipos_chamado_df = get_distinct_tipos_chamado()
+    
+    # 4. Aplicar filtros
+    df_filtrado = df_base.copy()
+    if unidade_selecionada:
+        df_filtrado = df_filtrado[df_filtrado['UNIDADE'] == unidade_selecionada]
+    if servico_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['SERVICO'] == servico_selecionado]
+    if tipo_chamado_selecionado:
+        df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == tipo_chamado_selecionado]
+
+    # 5. Inicializar variáveis para os 6 indicadores
+    pizza_status_ativos_html = None; linha_criados_resolvidos_html = None
+    barras_top_grupos_ativos_html = None; barras_sla_performance_html = None
+    barras_aging_distribuicao_html = None
+    kpis_chave = {'taxa_sla': '0.0%', 't_medio_resolucao': 'N/A', 'total_ativos': 0}
+    primeiro_grafico_renderizado = False
+
+    if not df_filtrado.empty:
+        df_ativos = df_filtrado[~df_filtrado['STATUS'].isin(STATUS_FECHADO_LISTA) & (df_filtrado['STATUS'] != STATUS_REPROVADO)].copy()
+        df_fechados = df_filtrado[df_filtrado['STATUS'].isin(STATUS_FECHADO_LISTA)].copy()
+
+        # Indicador 1: Pizza de Status dos Chamados Ativos
+        if not df_ativos.empty:
+            kpis_chave['total_ativos'] = len(df_ativos)
+            status_counts = df_ativos['STATUS'].value_counts().reset_index(); status_counts.columns = ['Status', 'Contagem']
+            fig1 = px.pie(status_counts, names='Status', values='Contagem', title='Distribuição de Chamados Ativos', hole=0.4, color_discrete_map=CORES_INDEX_PIZZA)
+            fig1.update_layout(margin=dict(t=40, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h", yanchor="bottom", y=-0.2))
+            pizza_status_ativos_html = fig1.to_html(full_html=False, include_plotlyjs='cdn'); primeiro_grafico_renderizado = True
+
+        # Indicador 2: Gráfico de Linha - Criados vs. Resolvidos
+        df_filtrado['DT_ABERTURA_DIA'] = pd.to_datetime(df_filtrado['DT_ABERTURA_RAW']).dt.date
+        df_filtrado['DT_RESOLUCAO_DIA'] = pd.to_datetime(df_filtrado['DT_RESOLUCAO_RAW']).dt.date
+        criados_por_dia = df_filtrado.groupby('DT_ABERTURA_DIA').size().reset_index(name='Criados')
+        resolvidos_por_dia = df_filtrado.groupby('DT_RESOLUCAO_DIA').size().reset_index(name='Resolvidos')
+        df_criados_resolvidos = pd.merge(criados_por_dia, resolvidos_por_dia, left_on='DT_ABERTURA_DIA', right_on='DT_RESOLUCAO_DIA', how='outer').sort_values(by='DT_ABERTURA_DIA').fillna(0)
+        if not df_criados_resolvidos.empty:
+            fig2 = px.line(df_criados_resolvidos, x='DT_ABERTURA_DIA', y=['Criados', 'Resolvidos'], title=f'Criados vs. Resolvidos ({periodo_selecionado})', markers=True)
+            fig2.update_layout(margin=dict(t=40, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h", yanchor="bottom", y=-0.2), xaxis_title=None, yaxis_title='Contagem')
+            linha_criados_resolvidos_html = fig2.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_renderizado);
+            if not primeiro_grafico_renderizado: primeiro_grafico_renderizado = True
+
+        # Indicador 3: Top 5 Grupos com Mais Chamados Ativos
+        if not df_ativos.empty:
+            top_grupos = df_ativos['GRUPO'].value_counts().nlargest(5).reset_index(); top_grupos.columns = ['Grupo', 'Contagem']
+            fig3 = px.bar(top_grupos, x='Grupo', y='Contagem', title='Top 5 Grupos com Mais Chamados Ativos', text='Contagem')
+            fig3.update_layout(margin=dict(t=40, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', xaxis_title=None, yaxis_title='Contagem')
+            barras_top_grupos_ativos_html = fig3.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_renderizado);
+            if not primeiro_grafico_renderizado: primeiro_grafico_renderizado = True
+
+        # Indicador 4 & KPI Chave: Performance de SLA
+        df_sla_base = df_fechados[(pd.to_numeric(df_fechados['PRAZO_HORAS'], errors='coerce').fillna(0) > 0) & (df_fechados['TEMPO_RESOLUCAO_DECORRIDO'].notna())].copy()
+        if not df_sla_base.empty:
+            df_sla_base['PRAZO_MINUTOS'] = pd.to_timedelta(df_sla_base['PRAZO_HORAS'].astype(str), errors='coerce').dt.total_seconds() / 60
+            df_sla_base['TEMPO_RESOL_MIN'] = pd.to_numeric(df_sla_base['TEMPO_RESOLUCAO_DECORRIDO'], errors='coerce')
+            df_sla_base['DENTRO_SLA'] = df_sla_base['TEMPO_RESOL_MIN'] <= df_sla_base['PRAZO_MINUTOS']
+            sla_counts = df_sla_base['DENTRO_SLA'].value_counts().reset_index(); sla_counts['DENTRO_SLA'] = sla_counts['DENTRO_SLA'].map({True: 'Dentro do SLA', False: 'Fora do SLA'})
+            fig4 = px.bar(sla_counts, x='DENTRO_SLA', y='count', color='DENTRO_SLA', title='Performance de SLA (Fechados)', text='count', color_discrete_map={'Dentro do SLA': '#28a745', 'Fora do SLA': '#dc3545'})
+            fig4.update_layout(margin=dict(t=40, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', xaxis_title=None, yaxis_title='Contagem', showlegend=False)
+            barras_sla_performance_html = fig4.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_renderizado)
+            if not primeiro_grafico_renderizado: primeiro_grafico_renderizado = True
+            total_com_sla = len(df_sla_base); dentro_sla_count = df_sla_base['DENTRO_SLA'].sum()
+            if total_com_sla > 0: kpis_chave['taxa_sla'] = f"{(dentro_sla_count / total_com_sla) * 100:.1f}%"
+            media_tempo = df_sla_base['TEMPO_RESOL_MIN'].mean()
+            if pd.notna(media_tempo): total_minutos = int(round(media_tempo)); h = total_minutos // 60; m = total_minutos % 60; kpis_chave['t_medio_resolucao'] = f"{h:02d}:{m:02d}h"
+
+        # Indicador 5: Distribuição de Aging
+        if not df_ativos.empty:
+            df_ativos.loc[:,'IDADE_DIAS'] = (datetime.now() - pd.to_datetime(df_ativos['DT_ABERTURA_RAW'])).dt.days
+            bins = [-1, 0, 7, 14, 24, 50, 100, 200, float('inf')]; labels = ['0 dias', '1-7 dias', '8-14 dias', '15-24 dias', '25-50 dias', '51-100 dias', '101-200 dias', '>200 dias']
+            df_ativos['FAIXA_AGING'] = pd.cut(df_ativos['IDADE_DIAS'], bins=bins, labels=labels, right=True)
+            aging_counts = df_ativos['FAIXA_AGING'].value_counts().reindex(labels).reset_index(); aging_counts.columns = ['Faixa', 'Contagem']
+            fig5 = px.bar(aging_counts, x='Faixa', y='Contagem', title='Distribuição de Aging (Chamados Ativos)', text='Contagem')
+            fig5.update_layout(margin=dict(t=40, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', xaxis_title=None, yaxis_title='Contagem')
+            barras_aging_distribuicao_html = fig5.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_renderizado)
+            if not primeiro_grafico_renderizado: primeiro_grafico_renderizado = True
+
+    return render_template('dashboard_apresentacao.html',
+                           pizza_status_ativos_html=pizza_status_ativos_html,
+                           linha_criados_resolvidos_html=linha_criados_resolvidos_html,
+                           barras_top_grupos_ativos_html=barras_top_grupos_ativos_html,
+                           barras_sla_performance_html=barras_sla_performance_html,
+                           barras_aging_distribuicao_html=barras_aging_distribuicao_html,
+                           kpis_chave=kpis_chave,
+                           data_inicio=data_inicio_str, data_fim=data_fim_str,
+                           lista_unidades=lista_unidades_df.to_dict(orient='records'),
+                           lista_servicos=lista_servicos_df.to_dict(orient='records'),
+                           lista_tipos_chamado=lista_tipos_chamado_df.to_dict(orient='records'),
+                           unidade_selecionada=unidade_selecionada,
+                           servico_selecionado=servico_selecionado,
+                           tipo_chamado_selecionado=tipo_chamado_selecionado,
+                           data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                           endpoint='dashboard_apresentacao'
+                           )
+    
 
 # --- ROTA EXPORTAR EXCEL ---
 @app.route('/exportar_excel')

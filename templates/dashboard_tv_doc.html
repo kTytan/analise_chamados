@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="refresh" content="900">
+    <title>Dashboard de Aging - Visão DOC</title>
+    <style>
+        /* CSS como na sua tela de Fornecedores */
+        html, body { margin: 0; padding: 0; height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e1e; color: #f0f0f0; }
+        body { display: flex; flex-direction: column; }
+        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; z-index: 10; }
+        .header-tv .title { display: block; font-weight: 500; }
+        .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
+        .main-container { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
+        .content-section { background-color: #282828; border-radius: 8px; padding: 15px; }
+        .content-section h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #404040; font-size: 1.5em; }
+        .kpi-aging-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 10px; margin-bottom: 20px; }
+        .kpi-card { background-color: #333333; padding: 10px 5px; border-radius: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center; border-bottom: 4px solid transparent; }
+        .kpi-card .value { font-size: 2.5em; font-weight: 600; margin-bottom: 5px; }
+        .kpi-card .label { font-size: 0.9em; color: #a0a0a0; word-wrap: break-word; }
+        .kpi-card.c1 { border-color: #28a745; } .kpi-card.c2 { border-color: #a0c42c; }
+        .kpi-card.c3 { border-color: #f0e920; } .kpi-card.c4 { border-color: #f7b71d; }
+        .kpi-card.c5 { border-color: #f28b18; } .kpi-card.c6 { border-color: #e5600d; }
+        .kpi-card.c7 { border-color: #d83502; } .kpi-card.c8 { border-color: #b00020; }
+        .kpi-card.total { border-color: #007bff; } .kpi-card.media { border-color: #6f42c1; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.9em; table-layout: fixed; }
+        th, td { border-bottom: 1px solid #444; padding: 10px; text-align: left; word-wrap: break-word; }
+        th { color: #00e676; font-size: 1em; }
+        tbody tr:hover { background-color: #3a3a3a; }
+        table th:nth-child(2), table td:nth-child(2) { width: 30%; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        table th:nth-child(1), table td:nth-child(1) { width: 8%; } table th:nth-child(3), table td:nth-child(3) { width: 10%; } table th:nth-child(9), table td:nth-child(9) { width: 8%; }
+    </style>
+</head>
+<body>
+    <div class="header-tv">
+        <span class="title">Dashboard de Aging - Visão DOC</span>
+        <span class="subtitle">Visão de Chamados Ativos | Última Atualização: {{ data_atualizacao }}</span>
+    </div>
+    
+    <div class="main-container">
+        <section class="content-section">
+            <h2>Visão Unificada de Grupos DOC</h2>
+            <div class="kpi-aging-grid">
+                <div class="kpi-card c1"><div class="value">{{ kpis_aging['0 dias'] | default(0) }}</div><div class="label">0 dias</div></div>
+                <div class="kpi-card c2"><div class="value">{{ kpis_aging['1 a 7 dias'] | default(0) }}</div><div class="label">1 a 7 dias</div></div>
+                <div class="kpi-card c3"><div class="value">{{ kpis_aging['8 a 14 dias'] | default(0) }}</div><div class="label">8 a 14 dias</div></div>
+                <div class="kpi-card c4"><div class="value">{{ kpis_aging['15 a 24 dias'] | default(0) }}</div><div class="label">15 a 24 dias</div></div>
+                <div class="kpi-card c5"><div class="value">{{ kpis_aging['25 a 50 dias'] | default(0) }}</div><div class="label">25 a 50 dias</div></div>
+                <div class="kpi-card c6"><div class="value">{{ kpis_aging['51 a 100 dias'] | default(0) }}</div><div class="label">51 a 100 dias</div></div>
+                <div class="kpi-card c7"><div class="value">{{ kpis_aging['101 a 200 dias'] | default(0) }}</div><div class="label">101 a 200 dias</div></div>
+                <div class="kpi-card c8"><div class="value">{{ kpis_aging['> 200 dias'] | default(0) }}</div><div class="label">> 200 dias</div></div>
+                <div class="kpi-card total"><div class="value">{{ total_ativos }}</div><div class="label">Total Ativos</div></div>
+                <div class="kpi-card media"><div class="value">{{ media_vida_dias }}</div><div class="label">Média Dias</div></div>
+            </div>
+            
+            {% if chamados_detalhes is not none and not chamados_detalhes.empty %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Chamado</th><th>Título</th><th>Data Abertura</th><th>Tipo Chamado</th><th>Grupo</th><th>Status</th><th>Solicitante</th><th>Atendente</th><th>Idade (Dias)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for index, chamado in chamados_detalhes.iterrows() %}
+                    <tr>
+                        <td>{{ chamado.CHAMADO }}</td><td>{{ chamado.TITULO }}</td><td>{{ chamado.DT_ABERTURA_FORMATADA }}</td>
+                        <td>{{ chamado.TIPOCHAMADO }}</td><td>{{ chamado.GRUPO }}</td><td>{{ chamado.STATUS }}</td>
+                        <td>{{ chamado.SOLICITANTE }}</td><td>{{ chamado.ATENDENTE | default('N/A') }}</td><td>{{ chamado.IDADE_DIAS }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+                <p style="text-align: center; color: #888;">Nenhum chamado ativo para os grupos selecionados.</p>
+            {% endif %}
+        </section>
+    </div>
+</body>
+</html>

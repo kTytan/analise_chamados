@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Apresentação</title>
+    <style>
+        html, body { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e1e; color: #f0f0f0; }
+        body { display: flex; flex-direction: column; }
+        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; }
+        .header-tv .title { display: block; font-weight: 500; }
+        .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
+        nav { background-color: #0d0d0d; padding: 10px 0; margin-bottom: 10px; text-align: center; border-radius: 4px; flex-shrink: 0;}
+        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s ease;}
+        nav a:hover, nav a.active { text-decoration: underline; background-color: #4a6fa5; }
+        
+        .main-container { padding: 15px; overflow-y: auto; }
+        .filters-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px; background-color: #282828; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
+        .filter-group label { font-weight: 500; color: #ccc; font-size: 0.9em; text-align: left; }
+        .filter-group input, .filter-group select { background-color: #383838; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 5px; font-size: 1em; }
+        .filters-container button { background-color: #00bfa5; color: #1e1e1e; font-weight: bold; cursor: pointer; border:none; padding: 8px 20px; border-radius: 5px; }
+
+        .presentation-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .chart-card { background-color: #282828; border-radius: 8px; padding: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); min-height: 400px; display: flex; flex-direction: column; }
+        
+        .kpi-card-container { display: flex; flex-direction: column; justify-content: space-around; height: 100%; text-align: center; }
+        .kpi-item .value { font-size: 3.5em; font-weight: 600; color: #00d9b2; }
+        .kpi-item .value.success { color: #28a745; }
+        .kpi-item .label { font-size: 1.2em; color: #a0a0a0; }
+        
+        @media (max-width: 1200px) { .presentation-grid { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 768px) { .presentation-grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    <div class="header-tv">
+        <span class="title">Dashboard de Apresentação</span>
+        <span class="subtitle">Última Atualização: {{ data_atualizacao }}</span>
+    </div>
+    <nav>
+        <a href="{{ url_for('index') }}">Principal</a>
+        <a href="{{ url_for('dashboard_tv_sla') }}">TV SLA</a>
+        <a href="{{ url_for('dashboard_apresentacao') }}" class="active">Apresentação</a>
+        <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
+    </nav>
+
+    <div class="main-container">
+        <form method="GET" action="{{ url_for('dashboard_apresentacao') }}" class="filters-container">
+            <div class="filter-group"><label for="data_inicio">Data Início:</label><input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}"></div>
+            <div class="filter-group"><label for="data_fim">Data Fim:</label><input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}"></div>
+            <div class="filter-group"><label for="unidade">Unidade:</label><select name="unidade" id="unidade"><option value="">Todas</option>{% for u in lista_unidades %}<option value="{{ u.nm_filial }}" {% if u.nm_filial == unidade_selecionada %}selected{% endif %}>{{ u.nm_filial }}</option>{% endfor %}</select></div>
+            <div class="filter-group"><label for="servico">Serviço:</label><select name="servico" id="servico"><option value="">Todos</option>{% for s in lista_servicos %}<option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>{{ s.ds_servico }}</option>{% endfor %}</select></div>
+            <div class="filter-group"><label for="tipo_chamado">Tipo de Chamado:</label><select name="tipo_chamado" id="tipo_chamado"><option value="">Todos</option>{% for tc in lista_tipos_chamado %}<option value="{{ tc.ds_tipo_chamado }}" {% if tc.ds_tipo_chamado == tipo_chamado_selecionado %}selected{% endif %}>{{ tc.ds_tipo_chamado }}</option>{% endfor %}</select></div>
+            <div class="filter-group"><button type="submit">Filtrar</button></div>
+        </form>
+
+        <div class="presentation-grid">
+            <div class="chart-card">
+                {% if pizza_status_ativos_html %}{{ pizza_status_ativos_html|safe }}{% else %}<p style="text-align:center;">Sem dados de chamados ativos.</p>{% endif %}
+            </div>
+            <div class="chart-card">
+                {% if linha_criados_resolvidos_html %}{{ linha_criados_resolvidos_html|safe }}{% else %}<p style="text-align:center;">Sem dados de criação/resolução.</p>{% endif %}
+            </div>
+            <div class="chart-card">
+                {% if barras_top_grupos_ativos_html %}{{ barras_top_grupos_ativos_html|safe }}{% else %}<p style="text-align:center;">Sem dados de grupos ativos.</p>{% endif %}
+            </div>
+            <div class="chart-card">
+                {% if barras_sla_performance_html %}{{ barras_sla_performance_html|safe }}{% else %}<p style="text-align:center;">Sem dados de SLA no período.</p>{% endif %}
+            </div>
+            <div class="chart-card">
+                {% if barras_aging_distribuicao_html %}{{ barras_aging_distribuicao_html|safe }}{% else %}<p style="text-align:center;">Sem dados de Aging.</p>{% endif %}
+            </div>
+            <div class="chart-card">
+                <div class="kpi-card-container">
+                    <div class="kpi-item">
+                        <div class="value success">{{ kpis_chave.taxa_sla }}</div>
+                        <div class="label">Taxa de Sucesso SLA</div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="value">{{ kpis_chave.t_medio_resolucao }}</div>
+                        <div class="label">T. Médio de Resolução</div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="value">{{ kpis_chave.total_ativos }}</div>
+                        <div class="label">Total de Chamados Ativos</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

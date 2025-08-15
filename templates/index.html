@@ -37,11 +37,11 @@
         }
         .nav-grid {
             display: grid;
-            /* O grid agora terá 3 colunas para um layout mais organizado */
-            grid-template-columns: repeat(3, 1fr);
+            /* Grid responsivo que tenta encaixar cards de 280px de largura */
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 25px;
             width: 100%;
-            max-width: 1200px; /* Limita a largura máxima do grid */
+            max-width: 1300px; /* Aumenta um pouco a largura máxima para acomodar mais cards */
         }
         .nav-card {
             background-color: #282828;
@@ -55,7 +55,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start; /* Alinha o conteúdo ao topo */
+            justify-content: flex-start;
             min-height: 160px;
         }
         .nav-card:hover {
@@ -84,17 +84,6 @@
             font-size: 0.9em;
             color: #666;
         }
-        /* Ajuste para telas menores */
-        @media (max-width: 900px) {
-            .nav-grid {
-                grid-template-columns: 1fr 1fr; /* 2 colunas */
-            }
-        }
-        @media (max-width: 600px) {
-            .nav-grid {
-                grid-template-columns: 1fr; /* 1 coluna */
-            }
-        }
     </style>
 </head>
 <body>
@@ -114,25 +103,31 @@
             <a href="{{ url_for('dashboard_tv_fornecedores') }}" class="nav-card">
                 <div class="card-icon">⚙️</div>
                 <h2>TV Fornecedores</h2>
-                <p>KPIs de sustentação para os grupos SEVEN e MMBIT.</p>
+                <p>Dashboard de Aging para os grupos de fornecedores.</p>
             </a>
 
             <a href="{{ url_for('dashboard_tv_gerencial') }}" class="nav-card">
                  <div class="card-icon">📈</div>
                 <h2>TV Gerencial</h2>
-                <p>Visão geral de chamados Oracle e KPIs de grupos DBP.</p>
+                <p>Visão geral, KPIs de grupos DBP e tendências históricas.</p>
             </a>
             
             <a href="{{ url_for('dashboard_tv_sla') }}" class="nav-card">
                 <div class="card-icon">⏱️</div>
                 <h2>TV SLA</h2>
-                <p>Análise de performance do SLA de Resolução por período.</p>
+                <p>Análise de performance do SLA de Resolução com filtros.</p>
             </a>
 
             <a href="{{ url_for('dashboard_tv_infra') }}" class="nav-card">
                 <div class="card-icon">🖥️</div>
                 <h2>TV Infraestrutura</h2>
                 <p>KPIs e análise de chamados para os grupos de Infra.</p>
+            </a>
+
+            <a href="{{ url_for('dashboard_tv_doc') }}" class="nav-card">
+                <div class="card-icon">📑</div>
+                <h2>TV Visão DOC</h2>
+                <p>Dashboard de Aging consolidado para grupos de operações.</p>
             </a>
 
             <a href="{{ url_for('analise_detalhada') }}" class="nav-card">
