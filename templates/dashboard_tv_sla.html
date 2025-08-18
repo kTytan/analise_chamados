@@ -3,125 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="refresh" content="900"> 
-    <title>Monitoramento de SLA de Resolução</title>
+    <title>Monitoramento de SLA</title>
     <style>
-        /* CSS com Tema Escuro - Padrão das Telas de TV */
         html, body { height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; font-family: 'Segoe UI', Arial, sans-serif; background-color: #1e1e1e; color: #f0f0f0; }
         body { display: flex; flex-direction: column; }
-        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; z-index: 10; }
-        .header-tv .title { display: block; font-weight: 500; }
-        .header-tv .subtitle { font-size: 0.65em; display: block; margin-top: 1px; color: #b0b0b0; }
-        nav { background-color: #0d0d0d; padding: 10px 0; margin-bottom: 10px; text-align: center; border-radius: 4px; flex-shrink: 0;}
-        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s ease;}
+        .header-tv { background-color: #0d0d0d; color: white; padding: 8px 15px; text-align: center; font-size: 1.8em; box-shadow: 0 2px 4px rgba(0,0,0,0.6); flex-shrink: 0; }
+        .header-tv .title { font-weight: 500; }
+        .header-tv .subtitle { font-size: 0.65em; margin-top: 1px; color: #b0b0b0; }
+        nav { background-color: #0d0d0d; padding: 10px 0; text-align: center; border-radius: 4px; flex-shrink: 0;}
+        nav a { color: white; margin: 0 15px; text-decoration: none; font-size: 1em; padding: 8px 12px; border-radius: 4px; }
         nav a:hover, nav a.active { text-decoration: underline; background-color: #4a6fa5; }
-        .tv-main-container-sla { padding: 15px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 20px; }
-        
-        .filters-container { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; gap: 15px; background-color: #282828; padding: 15px; border-radius: 8px; }
+        .tv-main-container-sla { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .filter-section { background-color: #282828; padding: 15px; border-radius: 8px; }
+        .filter-section h2 { color: #00bfa5; text-align: left; margin-top: 0; margin-bottom: 15px; font-size: 1.2em; border-bottom: 1px solid #404040; padding-bottom: 8px;}
+        .filters-form { display: flex; flex-wrap: wrap; justify-content: flex-start; align-items: flex-end; gap: 15px; }
         .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 180px; }
         .filter-group label { font-weight: 500; color: #ccc; font-size: 0.9em; text-align: left; }
-        .filter-group input, .filter-group select { background-color: #383838; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 5px; font-size: 1em; }
-        .filters-container button { background-color: #00bfa5; color: #1e1e1e; font-weight: bold; cursor: pointer; border:none; padding: 8px 20px; }
-        .filters-container button:hover { background-color: #00d9b2; }
-        
-        .kpi-section, .chart-section { padding: 15px; background-color: #282828; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .kpi-section h2, .chart-section h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #404040; font-size: 1.5em; }
+        .filter-group input, .filter-group select { background-color: #383838; color-scheme: dark; color: #fff; border: 1px solid #555; padding: 8px 12px; border-radius: 5px; font-size: 1em; }
+        .filters-form button { background-color: #00bfa5; color: #1e1e1e; font-weight: bold; cursor: pointer; border:none; padding: 8px 20px; border-radius: 5px; }
+        .kpi-section { padding: 15px; background-color: #282828; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
+        .kpi-section h2 { color: #00e676; text-align: center; margin-top: 0; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #404040; font-size: 1.5em; }
         .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; align-items: stretch; }
-        .kpi-card { background-color: #333333; padding: 15px 10px; border-radius: 5px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 110px; box-sizing: border-box; }
-        .kpi-card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.2s ease, box-shadow 0.2s ease; }
-        .kpi-card-link:hover .kpi-card { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        .kpi-card { background-color: #333333; padding: 15px 10px; border-radius: 5px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 110px; }
         .kpi-card .value { font-size: 3em; font-weight: 600; color: #00d9b2; margin-bottom: 5px; line-height: 1.1; }
         .kpi-card .value.success { color: #28a745; }
         .kpi-card .value.danger { color: #dc3545; }
         .kpi-card .label { font-size: 1.3em; color: #a0a0a0; line-height: 1.2; word-wrap: break-word; }
-        .chart-container { background-color: #333333; padding: 10px; border-radius: 5px; box-shadow: inset 0 0 2px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.3); min-height: 450px; box-sizing: border-box; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        .chart-container > div { width: 100% !important; height: 100% !important; }
     </style>
 </head>
 <body>
     <div class="header-tv">
-        <span class="title">Monitoramento de SLA de Resolução</span>
+        <span class="title">Monitoramento de SLA</span>
         <span class="subtitle">Última Atualização: {{ data_atualizacao }}</span>
     </div>
-    <nav>
-        <a href="{{ url_for('index') }}">Principal</a>
-        <a href="{{ url_for('analise_detalhada') }}">Análise Detalhada</a>
-        <a href="{{ url_for('dashboard_tv_oracle') }}">TV Oracle Detalhada</a>
-        <a href="{{ url_for('dashboard_tv_fornecedores') }}">TV Fornecedores</a>
-        <a href="{{ url_for('dashboard_tv_gerencial') }}">TV Gerencial Oracle</a>
-        <a href="{{ url_for('dashboard_tv_sla') }}" class="active">TV SLA</a>
-    </nav>
+    <nav></nav>
 
     <div class="tv-main-container-sla">
-        <form method="GET" action="{{ url_for('dashboard_tv_sla') }}" class="filters-container">
-            <div class="filter-group">
-                <label for="data_inicio">Data Início:</label>
-                <input type="date" id="data_inicio" name="data_inicio" value="{{ data_inicio }}">
-            </div>
-            <div class="filter-group">
-                <label for="data_fim">Data Fim:</label>
-                <input type="date" id="data_fim" name="data_fim" value="{{ data_fim }}">
-            </div>
-             <div class="filter-group">
-                <label for="tipo_chamado">Tipo de Chamado</label>
-                <select name="tipo_chamado" id="tipo_chamado">
-                    <option value="todos" {% if tipo_chamado_selecionado == 'todos' %}selected{% endif %}>Todos os Tipos</option>
-                    <option value="incidente" {% if tipo_chamado_selecionado == 'incidente' %}selected{% endif %}>Incidente</option>
-                    <option value="requisicao" {% if tipo_chamado_selecionado == 'requisicao' %}selected{% endif %}>Requisição</option>
-                </select>
-            </div>
-             <div class="filter-group">
-                <label for="servico">Serviço</label>
-                <select name="servico" id="servico">
-                    <option value="todos" {% if servico_selecionado == 'todos' %}selected{% endif %}>Todos os Serviços</option>
-                    {% for s in lista_servicos %}
-                    <option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado %}selected{% endif %}>{{ s.ds_servico }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-             <div class="filter-group">
-                <label for="filial">Filial</label>
-                <select name="filial" id="filial">
-                    <option value="todos" {% if filial_selecionada == 'todos' %}selected{% endif %}>Todas Filiais</option>
-                    <option value="portobello_corporativo" {% if filial_selecionada == 'portobello_corporativo' %}selected{% endif %}>Portobello (Corp)</option>
-                    <option value="Portobello Shop" {% if filial_selecionada == 'Portobello Shop' %}selected{% endif %}>Portobello Shop</option>
-                    <option value="Pointer" {% if filial_selecionada == 'Pointer' %}selected{% endif %}>Pointer</option>
-                    <option value="Portobello America" {% if filial_selecionada == 'Portobello America' %}selected{% endif %}>Portobello America</option>
-                </select>
-            </div>
-            <div class="filter-group" style="justify-content: flex-end;">
-                 <button type="submit">Filtrar</button>
-            </div>
-        </form>
+        <div class="filter-section">
+            <h2>Filtros para Chamados Fechados (por Data de Resolução)</h2>
+            <form method="GET" action="{{ url_for('dashboard_tv_sla') }}" class="filters-form">
+                <input type="hidden" name="data_inicio_abertos" value="{{ data_inicio_abertos }}">
+                <input type="hidden" name="data_fim_abertos" value="{{ data_fim_abertos }}">
+                <input type="hidden" name="tipo_chamado_abertos" value="{{ tipo_chamado_selecionado_abertos }}">
+                <input type="hidden" name="servico_abertos" value="{{ servico_selecionado_abertos }}">
+                <input type="hidden" name="filial_abertos" value="{{ filial_selecionada_abertos }}">
+
+                <div class="filter-group"><label for="data_inicio_fechados">Data Início:</label><input type="date" id="data_inicio_fechados" name="data_inicio_fechados" value="{{ data_inicio_fechados }}"></div>
+                <div class="filter-group"><label for="data_fim_fechados">Data Fim:</label><input type="date" id="data_fim_fechados" name="data_fim_fechados" value="{{ data_fim_fechados }}"></div>
+                <div class="filter-group">
+                    <label for="tipo_chamado_fechados">Tipo de Chamado</label>
+                    <select name="tipo_chamado_fechados" id="tipo_chamado_fechados">
+                        <option value="todos" {% if tipo_chamado_selecionado_fechados == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="incidente" {% if tipo_chamado_selecionado_fechados == 'incidente' %}selected{% endif %}>Incidente</option>
+                        <option value="requisicao" {% if tipo_chamado_selecionado_fechados == 'requisicao' %}selected{% endif %}>Requisição</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="servico_fechados">Serviço</label>
+                    <select name="servico_fechados" id="servico_fechados">
+                        <option value="todos" {% if servico_selecionado_fechados == 'todos' %}selected{% endif %}>Todos</option>
+                        {% for s in lista_servicos %}<option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado_fechados %}selected{% endif %}>{{ s.ds_servico }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filial_fechados">Filial</label>
+                    <select name="filial_fechados" id="filial_fechados">
+                        <option value="todos" {% if filial_selecionada_fechados == 'todos' %}selected{% endif %}>Todas</option>
+                        <option value="portobello_corporativo" {% if filial_selecionada_fechados == 'portobello_corporativo' %}selected{% endif %}>Portobello (Corp)</option>
+                        <option value="Portobello Shop" {% if filial_selecionada_fechados == 'Portobello Shop' %}selected{% endif %}>Portobello Shop</option>
+                        <option value="Pointer" {% if filial_selecionada_fechados == 'Pointer' %}selected{% endif %}>Pointer</option>
+                        <option value="Portobello America" {% if filial_selecionada_fechados == 'Portobello America' %}selected{% endif %}>Portobello America</option>
+                    </select>
+                </div>
+                <button type="submit">Filtrar</button>
+            </form>
+        </div>
 
         <section class="kpi-section">
-            <h2>Visão Geral do SLA (Filtros Aplicados)</h2>
+            <h2>Análise de SLA (Chamados Fechados)</h2>
             <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="value">{{ kpi_total_com_sla }}</div>
-                    <div class="label">Total Fechados com SLA</div>
+                <div class="kpi-card"><div class="value">{{ kpis_fechados.total_com_sla }}</div><div class="label">Total com SLA</div></div>
+                <div class="kpi-card"><div class="value success">{{ kpis_fechados.dentro_sla }}</div><div class="label">Dentro do SLA</div></div>
+                <div class="kpi-card"><div class="value danger">{{ kpis_fechados.fora_sla }}</div><div class="label">Fora do SLA</div></div>
+                <div class="kpi-card"><div class="value {{ 'success' if kpis_fechados.taxa_sucesso_sla_str.split('%')[0]|float >= 95 else 'danger' }}">{{ kpis_fechados.taxa_sucesso_sla_str }}</div><div class="label">Taxa de Sucesso</div></div>
+                <div class="kpi-card"><div class="value">{{ kpis_fechados.tempo_medio_resolucao_str }}</div><div class="label">T. Médio de Resolução</div></div>
+            </div>
+        </section>
+        
+        <div class="filter-section">
+            <h2>Filtros para Chamados em Aberto (por Data de Abertura)</h2>
+            <form method="GET" action="{{ url_for('dashboard_tv_sla') }}" class="filters-form">
+                 <input type="hidden" name="data_inicio_fechados" value="{{ data_inicio_fechados }}">
+                 <input type="hidden" name="data_fim_fechados" value="{{ data_fim_fechados }}">
+                 <input type="hidden" name="tipo_chamado_fechados" value="{{ tipo_chamado_selecionado_fechados }}">
+                 <input type="hidden" name="servico_fechados" value="{{ servico_selecionado_fechados }}">
+                 <input type="hidden" name="filial_fechados" value="{{ filial_selecionada_fechados }}">
+
+                <div class="filter-group"><label for="data_inicio_abertos">Data Início:</label><input type="date" id="data_inicio_abertos" name="data_inicio_abertos" value="{{ data_inicio_abertos }}"></div>
+                <div class="filter-group"><label for="data_fim_abertos">Data Fim:</label><input type="date" id="data_fim_abertos" name="data_fim_abertos" value="{{ data_fim_abertos }}"></div>
+                <div class="filter-group">
+                    <label for="tipo_chamado_abertos">Tipo</label>
+                    <select name="tipo_chamado_abertos" id="tipo_chamado_abertos">
+                        <option value="todos" {% if tipo_chamado_selecionado_abertos == 'todos' %}selected{% endif %}>Todos</option>
+                        <option value="incidente" {% if tipo_chamado_selecionado_abertos == 'incidente' %}selected{% endif %}>Incidente</option>
+                        <option value="requisicao" {% if tipo_chamado_selecionado_abertos == 'requisicao' %}selected{% endif %}>Requisição</option>
+                    </select>
                 </div>
-                <div class="kpi-card">
-                    <div class="value success">{{ kpi_dentro_sla }}</div>
-                    <div class="label">Dentro do SLA</div>
+                <div class="filter-group">
+                    <label for="servico_abertos">Serviço</label>
+                    <select name="servico_abertos" id="servico_abertos">
+                        <option value="todos" {% if servico_selecionado_abertos == 'todos' %}selected{% endif %}>Todos</option>
+                        {% for s in lista_servicos %}<option value="{{ s.ds_servico }}" {% if s.ds_servico == servico_selecionado_abertos %}selected{% endif %}>{{ s.ds_servico }}</option>{% endfor %}
+                    </select>
                 </div>
-                 <div class="kpi-card">
-                    <div class="value danger">{{ kpi_fora_sla }}</div>
-                    <div class="label">Fora do SLA</div>
+                <div class="filter-group">
+                    <label for="filial_abertos">Filial</label>
+                    <select name="filial_abertos" id="filial_abertos">
+                        <option value="todos" {% if filial_selecionada_abertos == 'todos' %}selected{% endif %}>Todas</option>
+                        <option value="portobello_corporativo" {% if filial_selecionada_abertos == 'portobello_corporativo' %}selected{% endif %}>Portobello (Corp)</option>
+                        <option value="Portobello Shop" {% if filial_selecionada_abertos == 'Portobello Shop' %}selected{% endif %}>Portobello Shop</option>
+                        <option value="Pointer" {% if filial_selecionada_abertos == 'Pointer' %}selected{% endif %}>Pointer</option>
+                        <option value="Portobello America" {% if filial_selecionada_abertos == 'Portobello America' %}selected{% endif %}>Portobello America</option>
+                    </select>
                 </div>
-                <div class="kpi-card">
-                    <div class="value {{ 'success' if kpi_taxa_sucesso_sla_str.split('%')[0]|float >= 95 else 'danger' }}">{{ kpi_taxa_sucesso_sla_str }}</div>
-                    <div class="label">Taxa de Sucesso</div>
-                </div>
-                 <div class="kpi-card">
-                    <div class="value">{{ kpi_tempo_medio_resolucao_str }}</div>
-                    <div class="label">T. Médio de Resolução</div>
-                </div>
+                <button type="submit">Filtrar</button>
+            </form>
+        </div>
+
+        <section class="kpi-section">
+            <h2>Análise de SLA (Chamados em Aberto)</h2>
+            <div class="kpi-grid">
+                <div class="kpi-card"><div class="value">{{ kpis_abertos.total_com_sla }}</div><div class="label">Total Ativos com SLA</div></div>
+                <div class="kpi-card"><div class="value success">{{ kpis_abertos.dentro_sla }}</div><div class="label">Ainda no Prazo</div></div>
+                <div class="kpi-card"><div class="value danger">{{ kpis_abertos.fora_sla }}</div><div class="label">SLA Estourado</div></div>
+                <div class="kpi-card"><div class="value {{ 'success' if kpis_abertos.taxa_sucesso_sla_str.split('%')[0]|float >= 95 else 'danger' }}">{{ kpis_abertos.taxa_sucesso_sla_str }}</div><div class="label">Taxa Dentro do Prazo</div></div>
+                <div class="kpi-card"><div class="value">{{ kpis_abertos.tempo_medio_decorrido_str }}</div><div class="label">Tempo Médio Decorrido</div></div>
             </div>
         </section>
 
         {% if sla_por_grupo_graph_html %}
         <section class="chart-section">
+            <h2>SLA de Resolução por Grupo (Top 10 piores - Fechados)</h2>
             <div class="chart-container">
                 {{ sla_por_grupo_graph_html|safe }}
             </div>

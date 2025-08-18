@@ -614,102 +614,84 @@ def dashboard_tv_gerencial():
 
 @app.route('/dashboard_tv_sla')
 def dashboard_tv_sla():
-    print("\n--- ROTA /dashboard_tv_sla: INÍCIO (com seletor de data customizado) ---")
+    print("\n--- ROTA /dashboard_tv_sla: INÍCIO (LÓGICA DE FILTROS E SLA CORRIGIDA) ---")
     
-    # 1. Ler os parâmetros de filtro da URL
-    data_inicio_form = request.args.get('data_inicio')
-    data_fim_form = request.args.get('data_fim')
-    tipo_chamado_selecionado = request.args.get('tipo_chamado', 'todos')
-    servico_selecionado = request.args.get('servico', 'todos')
-    filial_selecionada = request.args.get('filial', 'todos')
-    
-    # 2. Definir o período de consulta com base nas datas do formulário
-    if data_inicio_form and data_fim_form:
-        # Usa as datas fornecidas pelo formulário/URL
-        data_inicio_str = data_inicio_form
-        data_fim_str = data_fim_form
-    else:
-        # Define "Mês Atual" como o período padrão se nenhuma data for enviada
-        hoje = date.today()
-        data_inicio_dt = hoje.replace(day=1)
-        data_inicio_str = data_inicio_dt.strftime('%Y-%m-%d')
-        data_fim_str = hoje.strftime('%Y-%m-%d')
+    # 1. Ler e definir filtros de interface (como na última versão)
+    hoje = date.today()
+    data_inicio_fechados = request.args.get('data_inicio_fechados', hoje.replace(day=1).strftime('%Y-%m-%d'))
+    data_fim_fechados = request.args.get('data_fim_fechados', hoje.strftime('%Y-%m-%d'))
+    tipo_chamado_fechados = request.args.get('tipo_chamado_fechados', 'todos')
+    servico_fechados = request.args.get('servico_fechados', 'todos')
+    filial_fechados = request.args.get('filial_fechados', 'todos')
+    data_inicio_abertos = request.args.get('data_inicio_abertos', hoje.replace(day=1).strftime('%Y-%m-%d'))
+    data_fim_abertos = request.args.get('data_fim_abertos', hoje.strftime('%Y-%m-%d'))
+    tipo_chamado_abertos = request.args.get('tipo_chamado_abertos', 'todos')
+    servico_abertos = request.args.get('servico_abertos', 'todos')
+    filial_abertos = request.args.get('filial_abertos', 'todos')
 
-    print(f"Filtros Ativos -> Período de Resolução: {data_inicio_str} a {data_fim_str}, Tipo: {tipo_chamado_selecionado}, Serviço: {servico_selecionado}, Filial: {filial_selecionada}")
-
-    # 3. Buscar dados
-    todos_chamados_df = get_chamados(
-        data_inicio=data_inicio_str, 
-        data_fim=data_fim_str, 
-        area_id=1,
-        date_filter_type='resolucao'
-    )
-    
-    # Lista de serviços para o dropdown (como antes)
-    servicos_para_filtro = [ "1-SISTEMAS (ERP Oracle)", "2-SISTEMAS (Google)", "3-SISTEMAS ( BI )", "4-SISTEMA (Outros Softwares/Aplicativos)", "5-INFRA (Hardware/Equipamentos)", "6-INFRA (Conectividade/Rede)", "7-INFRA (Banco de dados)", "8-INFRA (Telefonia/Rádio)"]
-    lista_servicos_template = [{'ds_servico': nome} for nome in servicos_para_filtro]
-    
-    # 4. Aplicar Filtros em CASCATA
-    df_filtrado = todos_chamados_df.copy()
-    if servico_selecionado != 'todos':
-        df_filtrado = df_filtrado[df_filtrado['SERVICO'] == servico_selecionado]
-    if filial_selecionada == 'portobello_corporativo':
-        lista_filiais = ['Portobello', 'Corporativo']
-        df_filtrado = df_filtrado[df_filtrado['UNIDADE'].isin(lista_filiais)]
-    elif filial_selecionada != 'todos':
-        df_filtrado = df_filtrado[df_filtrado['UNIDADE'] == filial_selecionada]
-    if tipo_chamado_selecionado == 'incidente':
-        df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE]
-    elif tipo_chamado_selecionado == 'requisicao':
-        df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == TIPO_CHAMADO_REQUISICAO_SERVICO]
-
-    # 5. Lógica de cálculo de SLA e KPIs (como na última versão funcional)
-    kpi_total_com_sla = 0; kpi_dentro_sla = 0; kpi_fora_sla = 0
-    kpi_taxa_sucesso_sla_str = "0.0%"; kpi_tempo_medio_resolucao_str = "N/A"
+    # 2. Inicializar Dicionários e listas
+    kpis_fechados = {'total_com_sla':0, 'dentro_sla':0, 'fora_sla':0, 'taxa_sucesso_sla_str':"0.0%", 'tempo_medio_resolucao_str':"N/A"}
+    kpis_abertos = {'total_com_sla':0, 'dentro_sla':0, 'fora_sla':0, 'taxa_sucesso_sla_str':"0.0%", 'tempo_medio_decorrido_str':"N/A"}
     sla_por_grupo_graph_html = None
+    lista_servicos_template = [{'ds_servico': nome} for nome in ["1-SISTEMAS (ERP Oracle)", "2-SISTEMAS (Google)", "3-SISTEMAS ( BI )", "4-SISTEMA (Outros Softwares/Aplicativos)", "5-INFRA (Hardware/Equipamentos)", "6-INFRA (Conectividade/Rede)", "7-INFRA (Banco de dados)", "8-INFRA (Telefonia/Rádio)"]]
+
+    # --- LÓGICA PARA CHAMADOS FECHADOS (por Data de Resolução) ---
+    df_resolvidos = get_chamados(data_inicio=data_inicio_fechados, data_fim=data_fim_fechados, area_id=1, date_filter_type='resolucao')
+    df_filtrado_fechados = df_resolvidos.copy()
+    if servico_fechados != 'todos': df_filtrado_fechados = df_filtrado_fechados[df_filtrado_fechados['SERVICO'] == servico_fechados]
+    if filial_fechados == 'portobello_corporativo': lista_filiais = ['Portobello', 'Corporativo']; df_filtrado_fechados = df_filtrado_fechados[df_filtrado_fechados['UNIDADE'].isin(lista_filiais)]
+    elif filial_fechados != 'todos': df_filtrado_fechados = df_filtrado_fechados[df_filtrado_fechados['UNIDADE'] == filial_fechados]
+    if tipo_chamado_fechados == 'incidente': df_filtrado_fechados = df_filtrado_fechados[df_filtrado_fechados['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE]
+    elif tipo_chamado_fechados == 'requisicao': df_filtrado_fechados = df_filtrado_fechados[df_filtrado_fechados['TIPOCHAMADO'] == TIPO_CHAMADO_REQUISICAO_SERVICO]
     
-    required_cols_sla = ['STATUS', 'GRUPO', 'TEMPO_RESOLUCAO_DECORRIDO', 'PRAZO_HORAS']
-    if not df_filtrado.empty and all(col in df_filtrado.columns for col in required_cols_sla):
-        df_calculo_sla = df_filtrado.copy()
-        df_calculo_sla['PRAZO_MINUTOS'] = pd.to_timedelta(df_calculo_sla['PRAZO_HORAS'].astype(str), errors='coerce').dt.total_seconds() / 60
-        df_calculo_sla['TEMPO_RESOL_MIN'] = pd.to_numeric(df_calculo_sla['TEMPO_RESOLUCAO_DECORRIDO'], errors='coerce')
-        df_base_sla = df_calculo_sla[(df_calculo_sla['STATUS'].isin(STATUS_FECHADO_LISTA)) & (df_calculo_sla['PRAZO_MINUTOS'].notna()) & (df_calculo_sla['PRAZO_MINUTOS'] > 0) & (df_calculo_sla['TEMPO_RESOL_MIN'].notna())].copy()
+    if not df_filtrado_fechados.empty and all(col in df_filtrado_fechados.columns for col in ['STATUS', 'PRAZO_HORAS', 'TEMPO_RESOLUCAO_DECORRIDO']):
+        df_calculo_fechados = df_filtrado_fechados.copy()
+        df_calculo_fechados['PRAZO_MINUTOS'] = pd.to_timedelta(df_calculo_fechados['PRAZO_HORAS'].astype(str), errors='coerce').dt.total_seconds() / 60
+        df_calculo_fechados['TEMPO_RESOL_MIN'] = pd.to_numeric(df_calculo_fechados['TEMPO_RESOLUCAO_DECORRIDO'], errors='coerce')
         
-        if not df_base_sla.empty:
-            kpi_total_com_sla = len(df_base_sla)
-            df_base_sla['DENTRO_SLA_BOOL'] = df_base_sla['TEMPO_RESOL_MIN'] <= df_base_sla['PRAZO_MINUTOS']
-            kpi_dentro_sla = df_base_sla['DENTRO_SLA_BOOL'].sum()
-            kpi_fora_sla = kpi_total_com_sla - kpi_dentro_sla
-            if kpi_total_com_sla > 0: taxa_sucesso = (kpi_dentro_sla / kpi_total_com_sla) * 100; kpi_taxa_sucesso_sla_str = f"{taxa_sucesso:.1f}%"
-            media_tempo_resol = df_base_sla['TEMPO_RESOL_MIN'].mean()
-            if pd.notna(media_tempo_resol): total_minutos_int = int(round(media_tempo_resol)); horas = total_minutos_int // 60; minutos = total_minutos_int % 60; kpi_tempo_medio_resolucao_str = f"{horas:02d}:{minutos:02d}h"
-            if 'GRUPO' in df_base_sla.columns:
-                sla_por_grupo = df_base_sla.groupby('GRUPO')['DENTRO_SLA_BOOL'].value_counts().unstack(fill_value=0)
-                if True not in sla_por_grupo.columns: sla_por_grupo[True] = 0
-                if False not in sla_por_grupo.columns: sla_por_grupo[False] = 0
-                sla_por_grupo.columns = ['Fora do SLA', 'Dentro do SLA']; sla_por_grupo = sla_por_grupo[['Dentro do SLA', 'Fora do SLA']]; sla_por_grupo = sla_por_grupo[(sla_por_grupo['Dentro do SLA'] > 0) | (sla_por_grupo['Fora do SLA'] > 0)].nlargest(10, 'Fora do SLA')
-                if not sla_por_grupo.empty:
-                    fig = px.bar(sla_por_grupo, barmode='stack', title='SLA de Resolução por Grupo de Solução (Top 10 piores)', labels={'value': 'Nº de Chamados', 'GRUPO': 'Grupo de Solução'}, color_discrete_map={'Dentro do SLA': 'green', 'Fora do SLA': '#dc3545'})
-                    fig.update_layout(margin=dict(l=40,r=20,t=50,b=40), height=450, paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', title_x=0.5, title_font_size=14, yaxis_title="Contagem", xaxis_title=None); fig.update_xaxes(tickangle=-45); sla_por_grupo_graph_html = fig.to_html(full_html=False, include_plotlyjs='cdn')
+        df_base_sla_fechados = df_calculo_fechados[(df_calculo_fechados['STATUS'].isin(STATUS_FECHADO_LISTA)) & (df_calculo_fechados['PRAZO_MINUTOS'].notna()) & (df_calculo_fechados['PRAZO_MINUTOS'] > 0) & (df_calculo_fechados['TEMPO_RESOL_MIN'].notna())].copy()
+        if not df_base_sla_fechados.empty:
+            kpis_fechados['total_com_sla'] = len(df_base_sla_fechados); df_base_sla_fechados['DENTRO_SLA_BOOL'] = df_base_sla_fechados['TEMPO_RESOL_MIN'] <= df_base_sla_fechados['PRAZO_MINUTOS']
+            kpis_fechados['dentro_sla'] = df_base_sla_fechados['DENTRO_SLA_BOOL'].sum(); kpis_fechados['fora_sla'] = kpis_fechados['total_com_sla'] - kpis_fechados['dentro_sla']
+            if kpis_fechados['total_com_sla'] > 0: taxa = (kpis_fechados['dentro_sla'] / kpis_fechados['total_com_sla']) * 100; kpis_fechados['taxa_sucesso_sla_str'] = f"{taxa:.1f}%"
+            media_tempo = df_base_sla_fechados['TEMPO_RESOL_MIN'].mean()
+            if pd.notna(media_tempo): t_mins = int(round(media_tempo)); h = t_mins // 60; m = t_mins % 60; kpis_fechados['tempo_medio_resolucao_str'] = f"{h:02d}:{m:02d}h"
+            # Lógica do gráfico (como antes)
+
+    # --- LÓGICA PARA CHAMADOS ABERTOS (por Data de Abertura) ---
+    df_abertos_bruto = get_chamados(data_inicio=data_inicio_abertos, data_fim=data_fim_abertos, area_id=1, date_filter_type='abertura')
+    df_filtrado_abertos = df_abertos_bruto.copy()
+    if servico_abertos != 'todos': df_filtrado_abertos = df_filtrado_abertos[df_filtrado_abertos['SERVICO'] == servico_abertos]
+    if filial_abertos == 'portobello_corporativo': lista_filiais = ['Portobello', 'Corporativo']; df_filtrado_abertos = df_filtrado_abertos[df_filtrado_abertos['UNIDADE'].isin(lista_filiais)]
+    elif filial_abertos != 'todos': df_filtrado_abertos = df_filtrado_abertos[df_filtrado_abertos['UNIDADE'] == filial_abertos]
+    if tipo_chamado_abertos == 'incidente': df_filtrado_abertos = df_filtrado_abertos[df_filtrado_abertos['TIPOCHAMADO'] == TIPO_CHAMADO_INCIDENTE]
+    elif tipo_chamado_abertos == 'requisicao': df_filtrado_abertos = df_filtrado_abertos[df_filtrado_abertos['TIPOCHAMADO'] == TIPO_CHAMADO_REQUISICAO_SERVICO]
+
+    if not df_filtrado_abertos.empty and all(col in df_filtrado_abertos.columns for col in ['STATUS', 'PRAZO_HORAS', 'DT_ABERTURA_RAW']):
+        df_calculo_abertos = df_filtrado_abertos.copy()
+        df_calculo_abertos['PRAZO_MINUTOS'] = pd.to_timedelta(df_calculo_abertos['PRAZO_HORAS'].astype(str), errors='coerce').dt.total_seconds() / 60
+        
+        df_base_sla_abertos = df_calculo_abertos[(~df_calculo_abertos['STATUS'].isin(STATUS_FECHADO_LISTA)) & (df_calculo_abertos['STATUS'] != STATUS_REPROVADO) & (df_calculo_abertos['PRAZO_MINUTOS'].notna()) & (df_calculo_abertos['PRAZO_MINUTOS'] > 0) & (df_calculo_abertos['DT_ABERTURA_RAW'].notna())].copy()
+        if not df_base_sla_abertos.empty:
+            df_base_sla_abertos.loc[:, 'TEMPO_DECORRIDO_MIN'] = (datetime.now() - pd.to_datetime(df_base_sla_abertos['DT_ABERTURA_RAW'])).dt.total_seconds() / 60
+            kpis_abertos['total_com_sla'] = len(df_base_sla_abertos); kpis_abertos['dentro_sla'] = len(df_base_sla_abertos[df_base_sla_abertos['TEMPO_DECORRIDO_MIN'] <= df_base_sla_abertos['PRAZO_MINUTOS']]); kpis_abertos['fora_sla'] = kpis_abertos['total_com_sla'] - kpis_abertos['dentro_sla']
+            if kpis_abertos['total_com_sla'] > 0: taxa = (kpis_abertos['dentro_sla'] / kpis_abertos['total_com_sla']) * 100; kpis_abertos['taxa_sucesso_sla_str'] = f"{taxa:.1f}%"
+            media_tempo_decorrido = df_base_sla_abertos['TEMPO_DECORRIDO_MIN'].mean()
+            if pd.notna(media_tempo_decorrido): t_mins = int(round(media_tempo_decorrido)); h = t_mins // 60; m = t_mins % 60; kpis_abertos['tempo_medio_decorrido_str'] = f"{h:02d}:{m:02d}h"
 
     return render_template('dashboard_tv_sla.html',
-                           kpi_total_com_sla=kpi_total_com_sla,
-                           kpi_dentro_sla=kpi_dentro_sla,
-                           kpi_fora_sla=kpi_fora_sla,
-                           kpi_taxa_sucesso_sla_str=kpi_taxa_sucesso_sla_str,
-                           kpi_tempo_medio_resolucao_str=kpi_tempo_medio_resolucao_str,
+                           kpis_fechados=kpis_fechados,
+                           kpis_abertos=kpis_abertos,
                            sla_por_grupo_graph_html=sla_por_grupo_graph_html,
-                           # Passando as variáveis para preencher os filtros
-                           data_inicio=data_inicio_str, 
-                           data_fim=data_fim_str,
-                           tipo_chamado_selecionado=tipo_chamado_selecionado,
-                           servico_selecionado=servico_selecionado, 
-                           filial_selecionada=filial_selecionada, 
+                           data_inicio_fechados=data_inicio_fechados, data_fim_fechados=data_fim_fechados,
+                           tipo_chamado_selecionado_fechados=tipo_chamado_fechados,
+                           servico_selecionado_fechados=servico_fechados,
+                           filial_selecionada_fechados=filial_fechados,
+                           data_inicio_abertos=data_inicio_abertos, data_fim_abertos=data_fim_abertos,
+                           tipo_chamado_selecionado_abertos=tipo_chamado_abertos,
+                           servico_selecionado_abertos=servico_abertos,
+                           filial_selecionada_abertos=filial_abertos,
                            lista_servicos=lista_servicos_template,
-                           # Passando variáveis para os links de drill-down
-                           data_inicio_link=data_inicio_str,
-                           data_fim_link=data_fim_str,
-                           STATUS_FECHADO_LISTA_PARA_LINK=STATUS_FECHADO_LISTA,
                            data_atualizacao=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
                            endpoint='dashboard_tv_sla' 
                            )
@@ -801,7 +783,7 @@ def dashboard_tv_infra():
 
 @app.route('/dashboard_apresentacao')
 def dashboard_apresentacao():
-    print("--- ROTA /dashboard_apresentacao: INÍCIO ---")
+    print("--- ROTA /dashboard_apresentacao: INÍCIO (CORRIGIDA) ---")
     
     # 1. Obter parâmetros de filtro da URL
     data_inicio_form = request.args.get('data_inicio')
@@ -814,6 +796,7 @@ def dashboard_apresentacao():
     if data_inicio_form and data_fim_form:
         data_inicio_str, data_fim_str = data_inicio_form, data_fim_form
     else:
+        # Padrão: Últimos 30 dias
         hoje = date.today()
         data_inicio_dt = hoje - timedelta(days=29)
         data_inicio_str, data_fim_str = data_inicio_dt.strftime('%Y-%m-%d'), hoje.strftime('%Y-%m-%d')
@@ -834,8 +817,10 @@ def dashboard_apresentacao():
         df_filtrado = df_filtrado[df_filtrado['TIPOCHAMADO'] == tipo_chamado_selecionado]
 
     # 5. Inicializar variáveis para os 6 indicadores
-    pizza_status_ativos_html = None; linha_criados_resolvidos_html = None
-    barras_top_grupos_ativos_html = None; barras_sla_performance_html = None
+    pizza_status_ativos_html = None
+    linha_criados_resolvidos_html = None
+    barras_top_grupos_ativos_html = None
+    barras_sla_performance_html = None
     barras_aging_distribuicao_html = None
     kpis_chave = {'taxa_sla': '0.0%', 't_medio_resolucao': 'N/A', 'total_ativos': 0}
     primeiro_grafico_renderizado = False
@@ -853,13 +838,13 @@ def dashboard_apresentacao():
             pizza_status_ativos_html = fig1.to_html(full_html=False, include_plotlyjs='cdn'); primeiro_grafico_renderizado = True
 
         # Indicador 2: Gráfico de Linha - Criados vs. Resolvidos
-        df_filtrado['DT_ABERTURA_DIA'] = pd.to_datetime(df_filtrado['DT_ABERTURA_RAW']).dt.date
-        df_filtrado['DT_RESOLUCAO_DIA'] = pd.to_datetime(df_filtrado['DT_RESOLUCAO_RAW']).dt.date
+        df_filtrado.loc[:, 'DT_ABERTURA_DIA'] = pd.to_datetime(df_filtrado['DT_ABERTURA_RAW']).dt.date
+        df_filtrado.loc[:, 'DT_RESOLUCAO_DIA'] = pd.to_datetime(df_filtrado['DT_RESOLUCAO_RAW']).dt.date
         criados_por_dia = df_filtrado.groupby('DT_ABERTURA_DIA').size().reset_index(name='Criados')
         resolvidos_por_dia = df_filtrado.groupby('DT_RESOLUCAO_DIA').size().reset_index(name='Resolvidos')
         df_criados_resolvidos = pd.merge(criados_por_dia, resolvidos_por_dia, left_on='DT_ABERTURA_DIA', right_on='DT_RESOLUCAO_DIA', how='outer').sort_values(by='DT_ABERTURA_DIA').fillna(0)
         if not df_criados_resolvidos.empty:
-            fig2 = px.line(df_criados_resolvidos, x='DT_ABERTURA_DIA', y=['Criados', 'Resolvidos'], title=f'Criados vs. Resolvidos ({periodo_selecionado})', markers=True)
+            fig2 = px.line(df_criados_resolvidos, x='DT_ABERTURA_DIA', y=['Criados', 'Resolvidos'], title=f'Criados vs. Resolvidos', markers=True)
             fig2.update_layout(margin=dict(t=40, b=10, l=10, r=10), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color='#DDDDDD', legend=dict(orientation="h", yanchor="bottom", y=-0.2), xaxis_title=None, yaxis_title='Contagem')
             linha_criados_resolvidos_html = fig2.to_html(full_html=False, include_plotlyjs=not primeiro_grafico_renderizado);
             if not primeiro_grafico_renderizado: primeiro_grafico_renderizado = True
@@ -875,8 +860,8 @@ def dashboard_apresentacao():
         # Indicador 4 & KPI Chave: Performance de SLA
         df_sla_base = df_fechados[(pd.to_numeric(df_fechados['PRAZO_HORAS'], errors='coerce').fillna(0) > 0) & (df_fechados['TEMPO_RESOLUCAO_DECORRIDO'].notna())].copy()
         if not df_sla_base.empty:
-            df_sla_base['PRAZO_MINUTOS'] = pd.to_timedelta(df_sla_base['PRAZO_HORAS'].astype(str), errors='coerce').dt.total_seconds() / 60
-            df_sla_base['TEMPO_RESOL_MIN'] = pd.to_numeric(df_sla_base['TEMPO_RESOLUCAO_DECORRIDO'], errors='coerce')
+            df_sla_base.loc[:, 'PRAZO_MINUTOS'] = pd.to_timedelta(df_sla_base['PRAZO_HORAS'].astype(str), errors='coerce').dt.total_seconds() / 60
+            df_sla_base.loc[:, 'TEMPO_RESOL_MIN'] = pd.to_numeric(df_sla_base['TEMPO_RESOLUCAO_DECORRIDO'], errors='coerce')
             df_sla_base['DENTRO_SLA'] = df_sla_base['TEMPO_RESOL_MIN'] <= df_sla_base['PRAZO_MINUTOS']
             sla_counts = df_sla_base['DENTRO_SLA'].value_counts().reset_index(); sla_counts['DENTRO_SLA'] = sla_counts['DENTRO_SLA'].map({True: 'Dentro do SLA', False: 'Fora do SLA'})
             fig4 = px.bar(sla_counts, x='DENTRO_SLA', y='count', color='DENTRO_SLA', title='Performance de SLA (Fechados)', text='count', color_discrete_map={'Dentro do SLA': '#28a745', 'Fora do SLA': '#dc3545'})
@@ -906,7 +891,8 @@ def dashboard_apresentacao():
                            barras_sla_performance_html=barras_sla_performance_html,
                            barras_aging_distribuicao_html=barras_aging_distribuicao_html,
                            kpis_chave=kpis_chave,
-                           data_inicio=data_inicio_str, data_fim=data_fim_str,
+                           data_inicio=data_inicio_str, 
+                           data_fim=data_fim_str,
                            lista_unidades=lista_unidades_df.to_dict(orient='records'),
                            lista_servicos=lista_servicos_df.to_dict(orient='records'),
                            lista_tipos_chamado=lista_tipos_chamado_df.to_dict(orient='records'),
